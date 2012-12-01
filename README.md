@@ -64,12 +64,12 @@ Shortcuts used to generate markup:
     <td>&lt;p&gt;</td>
   </tr>
   <tr>
-    <td><strong>Ctrl-B</strong></td>
-    <td>&lt;strong&gt;</td>
-  </tr>
-  <tr>
     <td><strong>Ctrl-1..6</strong></td>
     <td>&lt;h1&gt;..&lt;h6&gt;</td>
+  </tr>
+  <tr>
+    <td><strong>Ctrl-B</strong></td>
+    <td>&lt;strong&gt;</td>
   </tr>
   <tr>
     <td><strong>Ctrl-I</strong></td>
