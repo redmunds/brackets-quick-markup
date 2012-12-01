@@ -46,42 +46,38 @@ You can switch documents while in quick markup mode.
 
 Shortcuts used to generate markup:
 
-1. **Ctrl-Enter** -- Split Tag
-1. **Ctrl-Delete** -- Join Next Sibling Tag
-1. **Ctrl-Backspace** -- Join Previous Sibling Tag
-1. **Ctrl-P** -- &lt;p&gt;
-1. **Ctrl-1..6** -- &lt;h1&gt;..&lt;h6&gt;
-1. **Ctrl-B** -- &lt;strong&gt;
-1. **Ctrl-I** -- &lt;em&gt;
-1. **Ctrl-D** -- &lt;del&gt;
-
 <table>
   <tr>
-      <td colspan="4">In Quick Markup Mode, the editor works the same, except for the following list of shortcuts:</td>
+    <td>**Ctrl-Enter**</td>
+    <td>Split Tag</td>
   </tr>
   <tr>
-    <td class="qm-shortcut">{{keyString}}-Enter</td>
-    <td class="qm-description">Split Tag</td>
-    <td class="qm-shortcut">{{keyString}}-P</td>
-    <td class="qm-description">&lt;p&gt;</td>
-    <td class="qm-shortcut">{{keyString}}-B</td>
-    <td class="qm-description">&lt;strong&gt;</td>
+    <td>**Ctrl-Delete**</td>
+    <td>Join Next Sibling Tag</td>
   </tr>
   <tr>
-    <td class="qm-shortcut">{{keyString}}-Delete</td>
-    <td class="qm-description">Join Next Sibling Tag</td>
-    <td class="qm-shortcut">{{keyString}}-1..6</td>
-    <td class="qm-description">&lt;h1&gt;..&lt;h6&gt;</td>
-    <td class="qm-shortcut">{{keyString}}-I</td>
-    <td class="qm-description">&lt;em&gt;</td>
+    <td>**Ctrl-Backspace**</td>
+    <td>Join Previous Sibling Tag</td>
   </tr>
   <tr>
-    <td class="qm-shortcut">{{keyString}}-Backspace</td>
-    <td class="qm-description">Join Previous Sibling Tag</td>
-    <td class="qm-shortcut"></td>
-    <td class="qm-description"></td>
-    <td class="qm-shortcut">{{keyString}}-D</td>
-    <td class="qm-description">&lt;del&gt;</td>
+    <td>**Ctrl-P**</td>
+    <td>&lt;p&gt;</td>
+  </tr>
+  <tr>
+    <td>**Ctrl-B**</td>
+    <td>&lt;strong&gt;</td>
+  </tr>
+  <tr>
+    <td>**Ctrl-1..6**</td>
+    <td>&lt;h1&gt;..&lt;h6&gt;</td>
+  </tr>
+  <tr>
+    <td>**Ctrl-I**</td>
+    <td>&lt;em&gt;</td>
+  </tr>
+  <tr>
+    <td>**Ctrl-D**</td>
+    <td>&lt;del&gt;</td>
   </tr>
 </table>
 
