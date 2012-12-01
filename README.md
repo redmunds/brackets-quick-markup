@@ -48,35 +48,35 @@ Shortcuts used to generate markup:
 
 <table>
   <tr>
-    <td>**Ctrl-Enter**</td>
-    <td>Split Tag</td>
+    <td><strong>Ctrl-Enter</strong></td>
+    <td>Split Tag or Start New Tag</td>
   </tr>
   <tr>
-    <td>**Ctrl-Delete**</td>
+    <td><strong>Ctrl-Delete</strong></td>
     <td>Join Next Sibling Tag</td>
   </tr>
   <tr>
-    <td>**Ctrl-Backspace**</td>
+    <td><strong>Ctrl-Backspace</strong></td>
     <td>Join Previous Sibling Tag</td>
   </tr>
   <tr>
-    <td>**Ctrl-P**</td>
+    <td><strong>Ctrl-P</strong></td>
     <td>&lt;p&gt;</td>
   </tr>
   <tr>
-    <td>**Ctrl-B**</td>
+    <td><strong>Ctrl-B</strong></td>
     <td>&lt;strong&gt;</td>
   </tr>
   <tr>
-    <td>**Ctrl-1..6**</td>
+    <td><strong>Ctrl-1..6</strong></td>
     <td>&lt;h1&gt;..&lt;h6&gt;</td>
   </tr>
   <tr>
-    <td>**Ctrl-I**</td>
+    <td><strong>Ctrl-I</strong></td>
     <td>&lt;em&gt;</td>
   </tr>
   <tr>
-    <td>**Ctrl-D**</td>
+    <td><strong>Ctrl-D</strong></td>
     <td>&lt;del&gt;</td>
   </tr>
 </table>
