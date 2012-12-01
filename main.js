@@ -610,8 +610,11 @@ define(function (require, exports, module) {
     }
 
     function handleKey(event) {
+        // Diferentiate Ctrl key from Cmd key on mac platform
+        var ctrlKey = (brackets.platform === "mac") ? event.metaKey : event.ctrlKey;
+        
         // quick check for most common cases
-        if (!event.ctrlKey || event.altKey || event.shiftKey) {
+        if (!ctrlKey || event.altKey || event.shiftKey) {
             // only cases we handle is ctrl with no alt or shift
             return false;
         }
