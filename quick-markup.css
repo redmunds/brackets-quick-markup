@@ -1,0 +1,29 @@
+/* All selectors are descendents of #quick-markup to constrain styles to this extension */
+#quick-markup {
+    color: #BBB;
+    background-color: #404040;
+    height: 30px;
+}
+#quick-markup .qm-content {
+    overflow: auto;
+}
+#quick-markup table {
+    margin: 0;
+}
+#quick-markup table td {
+    line-height: 14px;
+    padding: 4px 10px;
+    border-width: 0;
+    font-family: 'SourceSans', Helvetica, Arial, sans-serif;
+}
+#quick-markup table td.qm-shortcut {
+    color: #FFF;
+}
+#quick-markup .title {
+    color: #FFF;
+}
+#quick-markup .toolbar {
+    display: block;
+    color: #BBB;
+    background-color: #404040;
+}
