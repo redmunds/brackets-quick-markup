@@ -35,7 +35,7 @@ Pressing Ctrl-Backspace at the start of the (inner) text joins with the previous
 tag in a similar manner.
 
 Selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
-Pressing Ctrl-B again removes the &lt;strong&gt;.
+Pressing Ctrl-B again removes the &lt;strong&gt; tag.
 There is similar behavior pressing Ctrl-I for &lt;em&gt;
 and pressing Ctrl-D for &lt;del&gt;.
 
@@ -54,6 +54,36 @@ Shortcuts used to generate markup:
 1. **Ctrl-B** -- &lt;strong&gt;
 1. **Ctrl-I** -- &lt;em&gt;
 1. **Ctrl-D** -- &lt;del&gt;
+
+<table>
+  <tr>
+      <td colspan="4">In Quick Markup Mode, the editor works the same, except for the following list of shortcuts:</td>
+  </tr>
+  <tr>
+    <td class="qm-shortcut">{{keyString}}-Enter</td>
+    <td class="qm-description">Split Tag</td>
+    <td class="qm-shortcut">{{keyString}}-P</td>
+    <td class="qm-description">&lt;p&gt;</td>
+    <td class="qm-shortcut">{{keyString}}-B</td>
+    <td class="qm-description">&lt;strong&gt;</td>
+  </tr>
+  <tr>
+    <td class="qm-shortcut">{{keyString}}-Delete</td>
+    <td class="qm-description">Join Next Sibling Tag</td>
+    <td class="qm-shortcut">{{keyString}}-1..6</td>
+    <td class="qm-description">&lt;h1&gt;..&lt;h6&gt;</td>
+    <td class="qm-shortcut">{{keyString}}-I</td>
+    <td class="qm-description">&lt;em&gt;</td>
+  </tr>
+  <tr>
+    <td class="qm-shortcut">{{keyString}}-Backspace</td>
+    <td class="qm-description">Join Previous Sibling Tag</td>
+    <td class="qm-shortcut"></td>
+    <td class="qm-description"></td>
+    <td class="qm-shortcut">{{keyString}}-D</td>
+    <td class="qm-description">&lt;del&gt;</td>
+  </tr>
+</table>
 
 **Note:** Ctrl refers to Ctrl key on Windows or Cmd key on Mac.
 
