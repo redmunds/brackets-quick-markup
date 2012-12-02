@@ -77,8 +77,8 @@ define(function (require, exports, module) {
         inlineTagArray          = ["em", "strong"],
         textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6"];
 
-    // TODO: would be cleaner to have a single keymap instead offragmented arrays
-    var conflictingShortcutsArray   = ["Ctrl-D"],
+    // TODO: would be cleaner to have a single keymap instead of fragmented arrays
+    var conflictingShortcutsArray   = (brackets.platform === "mac") ? ["Cmd-D"] : ["Ctrl-D"],
         origKeymap;
 
     function initDocument() {
