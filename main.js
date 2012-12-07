@@ -74,7 +74,7 @@ define(function (require, exports, module) {
 
     var containerTagArray       = ["body", "div"],
         headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
-        inlineTagArray          = ["em", "strong"],
+        inlineTagArray          = ["del", "em", "strong"],
         textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6"];
 
     // TODO: would be cleaner to have a single keymap instead of fragmented arrays
@@ -588,25 +588,13 @@ define(function (require, exports, module) {
         var newTagName = getTagNameFromKeyCode(keyCode),
             oldTagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
 
-        // selection
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
-            if (newTagName === oldTagName) {
-                // remove tag
-                return changeTagName(oldTagName, "", sel);
-            } else {
-                // context is a different tag, so wrap new tag around it
-                return wrapTagAroundSelection(newTagName, sel, false);
-            }
-
-        // IP
-        } else {
-            if (newTagName === oldTagName) {
-                // remove tag
-                return changeTagName(oldTagName, "", sel);
-            }
+        // if context is same tag, remove it
+        if (newTagName === oldTagName) {
+            return changeTagName(oldTagName, "", sel);
         }
 
-        return false;
+        // context is a different tag, so wrap new tag around it
+        return wrapTagAroundSelection(newTagName, sel, false);
     }
 
     function handleKey(event) {
