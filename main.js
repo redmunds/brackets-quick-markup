@@ -84,7 +84,14 @@ define(function (require, exports, module) {
     function initDocument() {
         doc     = DocumentManager.getCurrentDocument();
         editor  = EditorManager.getCurrentFullEditor();
-        docMode = (editor) ? editor.getModeForDocument().toLowerCase() : "";
+        if (editor) {
+            // mode may be a string or an object (with name property)
+            var cmMode = editor.getModeForDocument();
+            docMode = (typeof cmMode === "string") ? cmMode : cmMode.name;
+            docMode = docMode.toLowerCase();
+        } else {
+            docMode = "";
+        }
     }
 
     function clearDocument() {
@@ -621,7 +628,7 @@ define(function (require, exports, module) {
         var sel = editor.getSelection(),
             ctx = TokenUtils.getInitialContext(editor._codeMirror, sel.start);
 
-        if (ctx.token.state.mode !== "html") {
+        if (TokenUtils.getModeAt(editor._codeMirror, sel.start).name !== "html") {
             return false;
         }
 
