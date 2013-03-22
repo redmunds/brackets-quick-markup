@@ -68,8 +68,6 @@ define(function (require, exports, module) {
         doc,
         docMode,
         editor,
-        indentUnit,
-        indentWithTabs,
         $quickMarkupPanel;
 
     var containerTagArray       = ["body", "div"],
@@ -104,8 +102,6 @@ define(function (require, exports, module) {
         var bracketsKeymap = KeyBindingManager.getKeymap();
 
         initDocument();
-        indentWithTabs  = Editor.getUseTabChar();
-        indentUnit      = Editor.getIndentUnit();
 
         // This is a one time setup, but all extensions may not be loaded
         // when init() is called, so wait until first usage
@@ -187,7 +183,7 @@ define(function (require, exports, module) {
     }
 
     function isHtmlDoc() {
-        return (docMode && (docMode.indexOf("html") === 0));
+        return (docMode && (docMode.match(/html/)));
     }
 
     function isContainerTag(tagName) {
