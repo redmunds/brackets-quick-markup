@@ -280,8 +280,9 @@ define(function (require, exports, module) {
 
     function getTagRangeFromIP(tagName, sel) {
         // Go backwards to the start of the tag
-        var selTag = $.extend(true, {}, sel),
-            ctx = TokenUtils.getInitialContext(editor._codeMirror, selTag.start),
+        var tagRangeStart = $.extend({}, sel.start),
+            tagRangeEnd   = $.extend({}, sel.end),
+            ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeStart),
             openStr = "<" + tagName;
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctx)) {
@@ -294,7 +295,7 @@ define(function (require, exports, module) {
 
         // Go forward to the end of the tag
         var closeStr = "</" + tagName;
-        ctx = TokenUtils.getInitialContext(editor._codeMirror, selTag.end);
+        ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeEnd);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctx)) {
             if (ctx.token.className === "tag" && ctx.token.string === closeStr) {
@@ -304,7 +305,7 @@ define(function (require, exports, module) {
             }
         }
         
-        return selTag;
+        return { start: tagRangeStart, end: tagRangeEnd };
     }
 
     function changeTagName(oldTagName, newTagName, sel) {
@@ -372,22 +373,23 @@ define(function (require, exports, module) {
         doc.replaceRange(insertString, sel.start, sel.end);
 
         // reset selection
-        var selNew = $.extend(true, {}, sel);
+        var selNewStart = $.extend({}, sel.start),
+            selNewEnd   = $.extend({}, sel.end);
         if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
-            selNew.start.ch += openTag.length;
+            selNewStart.ch += openTag.length;
             if (sel.start.line === sel.end.line) {
-                selNew.end.ch += openTag.length;
+                selNewEnd.ch += openTag.length;
             }
-            editor.setSelection(selNew.start, selNew.end);
+            editor.setSelection(selNewStart, selNewEnd);
 
             if (isBlock) {
                 // smart indent selection
                 editor._codeMirror.indentSelection();
             }
         } else {
-            selNew.start.ch += openTag.length;
-            selNew.end.ch   += openTag.length;
-            editor.setSelection(selNew.start, selNew.end);
+            selNewStart.ch += openTag.length;
+            selNewEnd.ch   += openTag.length;
+            editor.setSelection(selNewStart, selNewEnd);
 
             if (isBlock) {
                 // smart indent empty tag
@@ -468,8 +470,8 @@ define(function (require, exports, module) {
         }
 
         // determine if there is a next sibling tag
-        var selNextTag = $.extend(true, {}, sel);
-        var ctxNextTag = TokenUtils.getInitialContext(editor._codeMirror, selNextTag.end);
+        var selNextTagEnd = $.extend({}, sel.end);
+        var ctxNextTag = TokenUtils.getInitialContext(editor._codeMirror, selNextTagEnd);
 
         // move to the close tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
@@ -496,7 +498,7 @@ define(function (require, exports, module) {
         TokenUtils.moveNextToken(ctxNextTag);
 
         // delete range
-        doc.replaceRange("", selNextTag.start, selNextTag.end);
+        doc.replaceRange("", sel.start, selNextTagEnd);
 
         return true;
     }
@@ -519,8 +521,8 @@ define(function (require, exports, module) {
         }
 
         // determine if there is a previous sibling tag
-        var selPrevTag = $.extend(true, {}, sel);
-        var ctxPrevTag = TokenUtils.getInitialContext(editor._codeMirror, selPrevTag.start);
+        var selPrevTagStart = $.extend({}, sel.start);
+        var ctxPrevTag = TokenUtils.getInitialContext(editor._codeMirror, selPrevTagStart);
 
         // move to the start tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
@@ -529,15 +531,22 @@ define(function (require, exports, module) {
             }
         }
 
-        // next non-whitespace token must be endTag
+        // move to the end of previous tag
+        while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
+            if (ctxPrevTag.token.className === "tag" && ctxPrevTag.token.state.htmlState.type === "endTag") {
+                break;
+            }
+        }
+
+        // next non-whitespace token must be tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
-        if (ctxPrevTag.token.className !== "tag" || ctxPrevTag.token.state.htmlState.type !== "endTag") {
+        if (ctxPrevTag.token.className !== "tag" || ctxPrevTag.token.state.htmlState.type !== "closeTag") {
             return false;
         }
 
         // determine if previous tag is same as current tag.
         // TODO: if previous tag is joinable, auto-convert it to current tag, then join.
-        var prevTagName = ctxPrevTag.token.state.htmlState.tagName.toLowerCase();
+        var prevTagName = ctxPrevTag.token.state.htmlState.context.tagName.toLowerCase();
         if (tagName !== prevTagName) {
             // indicate that we handled keystroke so start tag is not partially deleted
             return true;
@@ -551,7 +560,7 @@ define(function (require, exports, module) {
         }
 
         // delete range
-        doc.replaceRange("", selPrevTag.start, selPrevTag.end);
+        doc.replaceRange("", selPrevTagStart, sel.end);
 
         return true;
     }
