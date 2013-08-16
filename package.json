@@ -1,0 +1,16 @@
+{
+    "name": "brackets-quick-markup",
+    "title": "Quick Markup",
+    "version": "1.0.0",
+    "description": "Quick Markup allows fast HTML markup generation as you type similar to what how a rich text editor works.",
+    "homepage": "https://github.com/redmunds/brackets-quick-markup",
+    "author": "Randy Edmunds (https://github.com/redmunds)",
+    "license": "MIT",
+    "categories": "utility",
+    "keywords": [
+        "generation"
+    ],
+    "engines": {
+        "brackets": ">=0.24.0"
+    }
+}
