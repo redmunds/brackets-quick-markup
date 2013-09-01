@@ -79,6 +79,7 @@ define(function (require, exports, module) {
     var conflictingShortcutsArray   = (brackets.platform === "mac") ? ["Cmd-D"] : ["Ctrl-D"],
         origKeymap;
 
+
     function initDocument() {
         doc     = DocumentManager.getCurrentDocument();
         editor  = EditorManager.getCurrentFullEditor();
@@ -96,90 +97,6 @@ define(function (require, exports, module) {
         doc     = null;
         editor  = null;
         docMode = "";
-    }
-
-    function initQuickMarkupMode() {
-        var bracketsKeymap = KeyBindingManager.getKeymap();
-
-        initDocument();
-
-        // This is a one time setup, but all extensions may not be loaded
-        // when init() is called, so wait until first usage
-        if (!origKeymap) {
-            // save copy for restoring
-            origKeymap = $.extend(true, {}, bracketsKeymap);
-        }
-
-        // remove conflicting shortcuts
-        conflictingShortcutsArray.forEach(function (shortcut) {
-            KeyBindingManager.removeBinding(shortcut, brackets.platform);
-        });
-    }
-
-    function clearQuickMarkupMode() {
-        clearDocument();
-
-        // restore conflicting shortcuts
-        conflictingShortcutsArray.forEach(function (shortcut) {
-            KeyBindingManager.addBinding(
-                origKeymap[shortcut].commandID,
-                [ shortcut ],
-                brackets.platform
-            );
-        });
-    }
-
-    // Define the functions that Commands will execute
-    function toggleQuickMarkupMode() {
-        modeQuickMarkup = !modeQuickMarkup;
-
-        if (cmdMarkup) {
-            cmdMarkup.setChecked(modeQuickMarkup);
-        }
-
-        if (modeQuickMarkup) {
-            // mode turned on: initialize data, show panel
-            initQuickMarkupMode();
-            $quickMarkupPanel.show();
-            
-        } else {
-            // mode turned off: clear data, hide panel
-            clearQuickMarkupMode();
-            $quickMarkupPanel.hide();
-        }
-        EditorManager.resizeEditor();
-    }
-
-    function toggleQuickMarkupHelp() {
-        var $qmContent = $quickMarkupPanel.find(".qm-content"),
-            height = heightHeader,
-            helpHeight = 0,
-            tableElt;
-
-        // viewing help forces quick markup mode on
-        if (!modeQuickMarkup) {
-            modeQuickMarkup = true;
-            cmdMarkup.setChecked(true);
-            initQuickMarkupMode();
-            $quickMarkupPanel.show();
-        }
-        
-        helpQuickMarkup = !helpQuickMarkup;
-
-        if (cmdHelp) {
-            cmdHelp.setChecked(helpQuickMarkup);
-        }
-
-        // auto-resize panel to height of content
-        if (helpQuickMarkup) {
-            tableElt = $qmContent.find("table").get(0);
-            helpHeight = parseInt(window.getComputedStyle(tableElt, null).height, 10);
-            height += helpHeight;
-        }
-
-        $qmContent.height(helpHeight);
-        $quickMarkupPanel.height(height);
-        EditorManager.resizeEditor();
     }
 
     function isHtmlDoc() {
@@ -619,6 +536,12 @@ define(function (require, exports, module) {
             return false;
         }
 
+        // Ignore ctrl/cmd key by itself
+        if (event.keyCode === KeyEvent.DOM_VK_CONTROL) {
+            // Mac: DOM_VK_META?
+            return false;
+        }
+
         initDocument();
         if (!doc || !editor) {
             return false;
@@ -674,6 +597,104 @@ define(function (require, exports, module) {
         return false;
     }
 
+    function _keydownHook(event) {
+        if (handleKey(event)) {
+            event.stopPropagation();
+            event.preventDefault();
+            return true;
+        }
+        
+        // If we didn't handle it, let other global keydown hooks handle it.
+        return false;
+    }
+    
+    function initQuickMarkupMode() {
+        var bracketsKeymap = KeyBindingManager.getKeymap();
+
+        initDocument();
+        KeyBindingManager.addGlobalKeydownHook(_keydownHook);
+
+        // Save copy for restoring. Extensions can be loaded on-the-fly,
+        // so re-copy every time we're enabled
+        origKeymap = $.extend(true, {}, bracketsKeymap);
+
+        // Remove conflicting shortcuts
+        conflictingShortcutsArray.forEach(function (shortcut) {
+            KeyBindingManager.removeBinding(shortcut, brackets.platform);
+        });
+
+    }
+
+    function clearQuickMarkupMode() {
+        clearDocument();
+        KeyBindingManager.removeGlobalKeydownHook(_keydownHook);
+
+        // restore conflicting shortcuts
+        conflictingShortcutsArray.forEach(function (shortcut) {
+            KeyBindingManager.addBinding(
+                origKeymap[shortcut].commandID,
+                [ shortcut ],
+                brackets.platform
+            );
+        });
+
+        // Memory cleanup        
+        origKeymap = null;
+    }
+
+    // Define the functions that Commands will execute
+    function toggleQuickMarkupMode() {
+        modeQuickMarkup = !modeQuickMarkup;
+
+        if (cmdMarkup) {
+            cmdMarkup.setChecked(modeQuickMarkup);
+        }
+
+        if (modeQuickMarkup) {
+            // mode turned on: initialize data, show panel
+            initQuickMarkupMode();
+            $quickMarkupPanel.show();
+            
+        } else {
+            // mode turned off: clear data, hide panel
+            clearQuickMarkupMode();
+            $quickMarkupPanel.hide();
+        }
+        EditorManager.resizeEditor();
+    }
+
+    function toggleQuickMarkupHelp() {
+        var $qmContent = $quickMarkupPanel.find(".qm-content"),
+            height = heightHeader,
+            helpHeight = 0,
+            tableElt;
+
+        // viewing help forces quick markup mode on
+        if (!modeQuickMarkup) {
+            modeQuickMarkup = true;
+            cmdMarkup.setChecked(true);
+            initQuickMarkupMode();
+            $quickMarkupPanel.show();
+        }
+        
+        helpQuickMarkup = !helpQuickMarkup;
+
+        if (cmdHelp) {
+            cmdHelp.setChecked(helpQuickMarkup);
+        }
+
+        // auto-resize panel to height of content
+        if (helpQuickMarkup) {
+            tableElt = $qmContent.find("table").get(0);
+            helpHeight = parseInt(window.getComputedStyle(tableElt, null).height, 10);
+            height += helpHeight;
+        }
+
+        $qmContent.height(helpHeight);
+        $quickMarkupPanel.height(height);
+        EditorManager.resizeEditor();
+    }
+
     function onDocumentChange() {
         // clear these fields -- they get updated on next usage
         clearDocument();
@@ -681,6 +702,7 @@ define(function (require, exports, module) {
 
     // initialize extension
     function init() {
+/*
         window.document.body.addEventListener(
             "keydown",
             function (event) {
@@ -692,6 +714,7 @@ define(function (require, exports, module) {
             },
             true
         );
+*/
 
         ExtensionUtils.loadStyleSheet(module, "quick-markup.css");
 
