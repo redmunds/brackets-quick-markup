@@ -638,7 +638,7 @@ define(function (require, exports, module) {
             );
         });
 
-        // Memory cleanup        
+        // Memory cleanup
         origKeymap = null;
     }
 
@@ -702,20 +702,6 @@ define(function (require, exports, module) {
 
     // initialize extension
     function init() {
-/*
-        window.document.body.addEventListener(
-            "keydown",
-            function (event) {
-                // quick check to amke sure mode is on
-                if (modeQuickMarkup && handleKey(event)) {
-                    event.stopPropagation();
-                    event.preventDefault();
-                }
-            },
-            true
-        );
-*/
-
         ExtensionUtils.loadStyleSheet(module, "quick-markup.css");
 
         // Register command to toggle mode
