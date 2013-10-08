@@ -70,13 +70,20 @@ define(function (require, exports, module) {
         editor,
         $quickMarkupPanel;
 
-    var containerTagArray       = ["body", "div"],
+    var containerTagArray       = ["body", "div", "section", "article", "ol", "ul"],
         headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
         inlineTagArray          = ["del", "em", "strong"],
-        textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6"];
+        textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"];
 
-    // TODO: would be cleaner to have a single keymap instead of fragmented arrays
-    var conflictingShortcutsArray   = (brackets.platform === "mac") ? ["Cmd-D"] : ["Ctrl-D"],
+    // Maintain a list of Ctrl/Cmd key bindings so we can determine conflicts
+    // (so they can be disabled in Quick Markup mode). Conflicts are determined
+    // whenever QM mode is entered so bindings of extensions installed during
+    // session are captured. This will not capture bindings for extensions installed
+    // while in QM mode! Bindings are restored when QM mode is exited.
+    // 
+    // Note: not sure why Ctrl+Enter is overridden correctly...
+    var quickMarkupShortcuts = ["B", "D", "I", "L", "P", "1", "2", "3", "4", "5", "6"],
+        conflictingBindingsArray = [],
         origKeymap;
 
 
@@ -126,6 +133,8 @@ define(function (require, exports, module) {
 
     function getTagNameFromKeyCode(keyCode) {
         switch (keyCode) {
+        case KeyEvent.DOM_VK_L:
+            return "li";
         case KeyEvent.DOM_VK_P:
             return "p";
         case KeyEvent.DOM_VK_1:
@@ -577,6 +586,7 @@ define(function (require, exports, module) {
             handleBackspaceKey(sel, ctx);
             return true;
 
+        case KeyEvent.DOM_VK_L:                     // li
         case KeyEvent.DOM_VK_P:                     // p
         case KeyEvent.DOM_VK_1:                     // h1
         case KeyEvent.DOM_VK_2:                     // h2
@@ -618,9 +628,22 @@ define(function (require, exports, module) {
         // so re-copy every time we're enabled
         origKeymap = $.extend(true, {}, bracketsKeymap);
 
+        // Generate list of conflicting shortcuts
+        quickMarkupShortcuts.forEach(function (baseChar) {
+            var shortcut = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-") + baseChar,
+                keybinding = origKeymap[shortcut];
+            if (keybinding) {
+                conflictingBindingsArray.push({
+                    shortcut:  shortcut,
+                    commandID: keybinding.commandID,
+                    platform:  keybinding.platform
+                });
+            }
+        });
+
         // Remove conflicting shortcuts
-        conflictingShortcutsArray.forEach(function (shortcut) {
-            KeyBindingManager.removeBinding(shortcut, brackets.platform);
+        conflictingBindingsArray.forEach(function (binding) {
+            KeyBindingManager.removeBinding(binding.shortcut, binding.platform);
         });
 
     }
@@ -630,15 +653,16 @@ define(function (require, exports, module) {
         KeyBindingManager.removeGlobalKeydownHook(_keydownHook);
 
         // restore conflicting shortcuts
-        conflictingShortcutsArray.forEach(function (shortcut) {
+        conflictingBindingsArray.forEach(function (binding) {
             KeyBindingManager.addBinding(
-                origKeymap[shortcut].commandID,
-                [ shortcut ],
-                brackets.platform
+                binding.commandID,
+                [ binding.shortcut ],
+                binding.platform
             );
         });
 
         // Memory cleanup
+        conflictingBindingsArray = [];
         origKeymap = null;
     }
 
