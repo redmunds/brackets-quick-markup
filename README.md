@@ -11,16 +11,16 @@ This is an Extension for [Brackets](https://github.com/adobe/brackets).
 
 This extension is accessed in Brackets using menu Edit &gt; Quick Markup Mode or Ctrl-M.
 
-A minimal bottom panel is displayed to indicate you are in quick markup mode. A &quot;mode&quot;
+A minimal bottom panel is displayed to indicate you are in quick markup mode. A &lquot;mode&rquot;
 is required because this extension uses a lot of keyboard shortcuts which conflict with
 some Brackets standard shortcuts. All other Brackets commands and editing work as expected.
 
 Quick Markup mode allows fast HTML markup generation as you type similar to what how a
 rich text editor works. It was created with text formatting in mind, but could be extended
-for any kind of markup. It currently only generates HTML.
+for any kind of markup. It currently only works in HTML and PHP documents.
 
 Start adding markup by pressing Ctrl-P to create a paragraph using a &lt;p&gt; tag.
-The tag will be wrapped around the currently selected &quot;raw&quot; text.
+The tag will be wrapped around the currently selected &lquot;raw&rquot; text.
 
 As you are typing, pressing Ctrl-Enter closes the current &lt;p&gt; tag and starts a new one.
 To convert a &lt;p&gt; tag to a heading, where heading refers to any &lt;h1&gt; through
@@ -34,7 +34,12 @@ or heading tag joins the tag with the following sibling (if tag is the same).
 Pressing Ctrl-Backspace at the start of the (inner) text joins with the previous
 tag in a similar manner.
 
-Selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
+The block-level formatting only works for parent tags of 
+&lt;body&gt;, &lt;div&gt;, &lt;section&gt;, &lt;article&gt;, &lt;header&gt;,
+&lt;footer&gt;, &lt;li&gt;, and &lt;blockquote&gt;.
+
+For inline text formatting,
+selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
 Pressing Ctrl-B again removes the &lt;strong&gt; tag.
 There is similar behavior pressing Ctrl-I for &lt;em&gt;
 and pressing Ctrl-D for &lt;del&gt;.
