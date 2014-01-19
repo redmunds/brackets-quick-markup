@@ -11,7 +11,7 @@ This is an Extension for [Brackets](https://github.com/adobe/brackets).
 
 This extension is accessed in Brackets using menu Edit &gt; Quick Markup Mode or Ctrl-M.
 
-A minimal bottom panel is displayed to indicate you are in quick markup mode. A &lquot;mode&rquot;
+A minimal bottom panel is displayed to indicate you are in quick markup mode. A &quot;mode&quot;
 is required because this extension uses a lot of keyboard shortcuts which conflict with
 some Brackets standard shortcuts. All other Brackets commands and editing work as expected.
 
@@ -20,7 +20,7 @@ rich text editor works. It was created with text formatting in mind, but could b
 for any kind of markup. It currently only works in HTML and PHP documents.
 
 Start adding markup by pressing Ctrl-P to create a paragraph using a &lt;p&gt; tag.
-The tag will be wrapped around the currently selected &lquot;raw&rquot; text.
+The tag will be wrapped around the currently selected &quot;raw&quot; text.
 
 As you are typing, pressing Ctrl-Enter closes the current &lt;p&gt; tag and starts a new one.
 To convert a &lt;p&gt; tag to a heading, where heading refers to any &lt;h1&gt; through
