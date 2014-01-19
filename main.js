@@ -106,8 +106,7 @@ define(function (require, exports, module) {
         docMode = "";
     }
 
-    // Note: to add another mode (such as "php"), may also need to update the
-    // htmlState() function
+    // Note: To add another mode, may also need to update function htmlState()
     function isHtmlDoc() {
         return (docMode && (docMode.match(/html/) || docMode.match(/php/)));
     }
@@ -131,6 +130,10 @@ define(function (require, exports, module) {
     function getLineEnding() {
         return (FileUtils.getPlatformLineEndings() === FileUtils.LINE_ENDINGS_CRLF)
                 ? "\r\n" : "\n";
+    }
+
+    function isIP(sel) {
+        return (sel.start.ch === sel.end.ch && sel.start.line === sel.end.line);
     }
 
     function getTagNameFromKeyCode(keyCode) {
@@ -251,7 +254,7 @@ define(function (require, exports, module) {
             oldStartTagIndex;
 
         // verify tag selection is an not IP
-        if (selTag.start.ch === selTag.end.ch && selTag.start.line === selTag.end.line) {
+        if (isIP(selTag)) {
             return false;
         }
 
@@ -304,14 +307,36 @@ define(function (require, exports, module) {
         var selText = doc.getRange(sel.start, sel.end),
             openTag = "<" + tagName + ">",
             closeTag = "</" + tagName + ">",
-            insertString = openTag + selText + closeTag;
+            insertString = openTag + selText + closeTag,
+            replSelEnd = $.extend({}, sel.end);
 
-        doc.replaceRange(insertString, sel.start, sel.end);
+        if (isIP(sel)) {
+            var trailingText, endPos;
+
+            // Selection is IP. If all text past IP is whitespace...
+            endPos = { ch: doc.getLine(sel.end.line).length, line: sel.end.line};
+            trailingText = doc.getRange(sel.start, endPos);
+            if (!trailingText.match(/\S/)) {
+                // ...then strip it, because markup is indented below.
+                replSelEnd.ch = endPos.ch;
+            }
+        }
+
+        doc.replaceRange(insertString, sel.start, replSelEnd);
 
         // reset selection
         var selNewStart = $.extend({}, sel.start),
             selNewEnd   = $.extend({}, sel.end);
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
+        if (isIP(sel)) {
+            selNewStart.ch += openTag.length;
+            selNewEnd.ch   += openTag.length;
+            editor.setSelection(selNewStart, selNewEnd);
+
+            if (isBlock) {
+                // smart indent empty tag
+                editor._codeMirror.indentLine(sel.start.line);
+            }
+        } else {
             selNewStart.ch += openTag.length;
             if (sel.start.line === sel.end.line) {
                 selNewEnd.ch += openTag.length;
@@ -321,15 +346,6 @@ define(function (require, exports, module) {
             if (isBlock) {
                 // smart indent selection
                 editor._codeMirror.indentSelection();
-            }
-        } else {
-            selNewStart.ch += openTag.length;
-            selNewEnd.ch   += openTag.length;
-            editor.setSelection(selNewStart, selNewEnd);
-
-            if (isBlock) {
-                // smart indent empty tag
-                editor._codeMirror.indentLine(sel.start.line);
             }
         }
  
@@ -348,7 +364,7 @@ define(function (require, exports, module) {
 
     function handleEnterKey(sel, ctx) {
         // only operate on IP
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
+        if (!isIP(sel)) {
             return false;
         }
 
@@ -390,7 +406,7 @@ define(function (require, exports, module) {
 
     function handleDeleteKey(sel, ctx) {
         // only operate on IP
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
+        if (!isIP(sel)) {
             return false;
         }
 
@@ -441,7 +457,7 @@ define(function (require, exports, module) {
 
     function handleBackspaceKey(sel, ctx) {
         // only operate on IP
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
+        if (!isIP(sel)) {
             return false;
         }
 
@@ -510,15 +526,8 @@ define(function (require, exports, module) {
             return true;
         }
 
-        // selection
-        if (sel.start.ch !== sel.end.ch || sel.start.line !== sel.end.line) {
-            if (isContainerTag(oldTagName)) {
-                // raw text - wrap tag around it
-                return wrapTagAroundSelection(newTagName, sel, true);
-            }
-
         // IP
-        } else {
+        if (isIP(sel)) {
             if (isContainerTag(oldTagName)) {
                 // create empty tag
                 return wrapTagAroundSelection(newTagName, sel, true);
@@ -526,6 +535,13 @@ define(function (require, exports, module) {
             } else if (isTextFormattingTag(oldTagName)) {
                 // convert old tag to new tag
                 return changeTagName(oldTagName, newTagName, sel);
+            }
+
+        // selection
+        } else {
+            if (isContainerTag(oldTagName)) {
+                // raw text - wrap tag around it
+                return wrapTagAroundSelection(newTagName, sel, true);
             }
         }
 
