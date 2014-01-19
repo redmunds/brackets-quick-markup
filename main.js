@@ -70,7 +70,7 @@ define(function (require, exports, module) {
         editor,
         $quickMarkupPanel;
 
-    var containerTagArray       = ["body", "div", "section", "article", "ol", "ul"],
+    var containerTagArray       = ["body", "div", "section", "article", "header", "footer", "li", "blockquote"],
         headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
         inlineTagArray          = ["del", "em", "strong"],
         textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"];
@@ -106,8 +106,10 @@ define(function (require, exports, module) {
         docMode = "";
     }
 
+    // Note: to add another mode (such as "php"), may also need to update the
+    // htmlState() function
     function isHtmlDoc() {
-        return (docMode && (docMode.match(/html/)));
+        return (docMode && (docMode.match(/html/) || docMode.match(/php/)));
     }
 
     function isContainerTag(tagName) {
@@ -162,12 +164,20 @@ define(function (require, exports, module) {
         return "";
     }
 
+    // Helper function to find htmlState object. This function assumes document has already
+    // been verified to be either "html" or "php". It's also been verified that section of
+    // doc is "html" (as opposed to "css" or "javascript"), but that shouldn't matter here.
+    function htmlState(ctx) {
+        // CodeMirror tokenizer places object differently for these modes
+        return ctx.token.state.htmlState || ctx.token.state.html.htmlState;
+    }
+
     // Determine if IP in tag is at start of content: <tag>|content</tag>
     function isStartOfContent(pos, ctx) {
         if (ctx.token.className === "tag" && ctx.token.string === ">") {
             // IP position column is at end of start tag.
             // verify previous token is open tag token.
-            var openStr = "<" + ctx.token.state.htmlState.context.tagName.toLowerCase(),
+            var openStr = "<" + htmlState(ctx).context.tagName.toLowerCase(),
                 posTag = $.extend(true, {}, pos),
                 ctxNext = TokenUtils.getInitialContext(editor._codeMirror, posTag);
 
@@ -175,7 +185,7 @@ define(function (require, exports, module) {
 
             return (
                 ctxNext.token.className === "tag" &&
-                ctxNext.token.state.htmlState.type === "openTag" &&
+                htmlState(ctxNext).type === "openTag" &&
                 ctxNext.token.string === openStr
             );
         }
@@ -188,7 +198,7 @@ define(function (require, exports, module) {
         if (ctx.token.className === null && ctx.token.end === pos.ch) {
             // IP position column is at end of text string.
             // now verify next token is tag-close token.
-            var closeStr = "</" + ctx.token.state.htmlState.context.tagName.toLowerCase(),
+            var closeStr = "</" + htmlState(ctx).context.tagName.toLowerCase(),
                 posTag = $.extend(true, {}, pos),
                 ctxNext = TokenUtils.getInitialContext(editor._codeMirror, posTag);
 
@@ -196,7 +206,7 @@ define(function (require, exports, module) {
             
             return (
                 ctxNext.token.className === "tag" &&
-                ctxNext.token.state.htmlState.type === "closeTag" &&
+                htmlState(ctxNext).type === "closeTag" &&
                 ctxNext.token.string === closeStr
             );
         }
@@ -342,7 +352,7 @@ define(function (require, exports, module) {
             return false;
         }
 
-        var tagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
+        var tagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // paragraph tag
         if (tagName === "p") {
@@ -385,7 +395,7 @@ define(function (require, exports, module) {
         }
 
         // determine if tag is joinable
-        var tagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
+        var tagName = htmlState(ctx).context.tagName.toLowerCase();
         if (!isTextFormattingTag(tagName)) {
             return false;
         }
@@ -401,20 +411,20 @@ define(function (require, exports, module) {
 
         // move to the close tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
-            if (ctxNextTag.token.className === "tag" && ctxNextTag.token.state.htmlState.type === "endTag") {
+            if (ctxNextTag.token.className === "tag" && htmlState(ctxNextTag).type === "endTag") {
                 break;
             }
         }
 
         // next non-whitespace token must be openTag
         TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag);
-        if (ctxNextTag.token.className !== "tag" || ctxNextTag.token.state.htmlState.type !== "openTag") {
+        if (ctxNextTag.token.className !== "tag" || htmlState(ctxNextTag).type !== "openTag") {
             return false;
         }
 
         // determine if next tag is same as current tag.
         // TODO: if next tag is joinable, auto-convert it to current tag, then join.
-        var nextTagName = ctxNextTag.token.state.htmlState.tagName.toLowerCase();
+        var nextTagName = htmlState(ctxNextTag).tagName.toLowerCase();
         if (tagName !== nextTagName) {
             // indicate that we handled keystroke so end tag is not partially deleted
             return true;
@@ -436,7 +446,7 @@ define(function (require, exports, module) {
         }
 
         // determine if tag is joinable
-        var tagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
+        var tagName = htmlState(ctx).context.tagName.toLowerCase();
         if (!isTextFormattingTag(tagName)) {
             return false;
         }
@@ -452,27 +462,27 @@ define(function (require, exports, module) {
 
         // move to the start tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.className === "tag" && ctxPrevTag.token.state.htmlState.type === "openTag") {
+            if (ctxPrevTag.token.className === "tag" && htmlState(ctxPrevTag).type === "openTag") {
                 break;
             }
         }
 
         // move to the end of previous tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.className === "tag" && ctxPrevTag.token.state.htmlState.type === "endTag") {
+            if (ctxPrevTag.token.className === "tag" && htmlState(ctxPrevTag).type === "endTag") {
                 break;
             }
         }
 
         // next non-whitespace token must be tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
-        if (ctxPrevTag.token.className !== "tag" || ctxPrevTag.token.state.htmlState.type !== "closeTag") {
+        if (ctxPrevTag.token.className !== "tag" || htmlState(ctxPrevTag).type !== "closeTag") {
             return false;
         }
 
         // determine if previous tag is same as current tag.
         // TODO: if previous tag is joinable, auto-convert it to current tag, then join.
-        var prevTagName = ctxPrevTag.token.state.htmlState.context.tagName.toLowerCase();
+        var prevTagName = htmlState(ctxPrevTag).context.tagName.toLowerCase();
         if (tagName !== prevTagName) {
             // indicate that we handled keystroke so start tag is not partially deleted
             return true;
@@ -493,7 +503,7 @@ define(function (require, exports, module) {
 
     function handleBlockTag(keyCode, sel, ctx) {
         var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
+            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         if (newTagName === oldTagName) {
             // same as handling event, but we don't need to do anything
@@ -524,7 +534,7 @@ define(function (require, exports, module) {
 
     function handleInlineTag(keyCode, sel, ctx) {
         var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = ctx.token.state.htmlState.context.tagName.toLowerCase();
+            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // if context is same tag, remove it
         if (newTagName === oldTagName) {
