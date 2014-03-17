@@ -182,7 +182,7 @@ define(function (require, exports, module) {
 
     // Determine if IP in tag is at start of content: <tag>|content</tag>
     function isStartOfContent(pos, ctx) {
-        if (ctx.token.className === "tag" && ctx.token.string === ">") {
+        if (ctx.token.type === "tag" && ctx.token.string === ">") {
             // IP position column is at end of start tag.
             // verify previous token is open tag token.
             var openStr = "<" + htmlState(ctx).context.tagName.toLowerCase(),
@@ -192,8 +192,8 @@ define(function (require, exports, module) {
             TokenUtils.movePrevToken(ctxNext);
 
             return (
-                ctxNext.token.className === "tag" &&
-                htmlState(ctxNext).type === "openTag" &&
+                ctxNext.token.type === "tag" &&
+                htmlState(ctxNext).state.name === "attrState" &&
                 ctxNext.token.string === openStr
             );
         }
@@ -203,7 +203,7 @@ define(function (require, exports, module) {
 
     // Determine if IP in tag is at end of content: <tag>content|</tag>
     function isEndOfContent(pos, ctx) {
-        if (ctx.token.className === null && ctx.token.end === pos.ch) {
+        if (ctx.token.end === pos.ch && (ctx.token.type === null || ctx.token.type === "tag")) {
             // IP position column is at end of text string.
             // now verify next token is tag-close token.
             var closeStr = "</" + htmlState(ctx).context.tagName.toLowerCase(),
@@ -213,8 +213,8 @@ define(function (require, exports, module) {
             TokenUtils.moveNextToken(ctxNext);
             
             return (
-                ctxNext.token.className === "tag" &&
-                htmlState(ctxNext).type === "closeTag" &&
+                ctxNext.token.type === "tag" &&
+                htmlState(ctxNext).state.name === "closeState" &&
                 ctxNext.token.string === closeStr
             );
         }
@@ -230,7 +230,7 @@ define(function (require, exports, module) {
             openStr = "<" + tagName;
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctx)) {
-            if (ctx.token.className === "tag" && ctx.token.string === openStr) {
+            if (ctx.token.type === "tag" && ctx.token.string === openStr) {
                 // move 1 more token to get "<[tag]"
                 TokenUtils.movePrevToken(ctx);
                 break;
@@ -242,7 +242,7 @@ define(function (require, exports, module) {
         ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeEnd);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctx)) {
-            if (ctx.token.className === "tag" && ctx.token.string === closeStr) {
+            if (ctx.token.type === "tag" && ctx.token.string === closeStr) {
                 // move 1 more token to get ">"
                 TokenUtils.moveNextToken(ctx);
                 break;
@@ -433,14 +433,14 @@ define(function (require, exports, module) {
 
         // move to the close tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
-            if (ctxNextTag.token.className === "tag" && htmlState(ctxNextTag).type === "endTag") {
+            if (ctxNextTag.token.type === "tag" && htmlState(ctxNextTag).state.name === "baseState") {
                 break;
             }
         }
 
-        // next non-whitespace token must be openTag
+        // next non-whitespace token must be open tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag);
-        if (ctxNextTag.token.className !== "tag" || htmlState(ctxNextTag).type !== "openTag") {
+        if (ctxNextTag.token.type !== "tag" || htmlState(ctxNextTag).state.name !== "attrState") {
             return false;
         }
 
@@ -452,7 +452,7 @@ define(function (require, exports, module) {
             return true;
         }
 
-        // move selection to next token which is end of openTag
+        // move selection to next token which is end of open tag
         TokenUtils.moveNextToken(ctxNextTag);
 
         // delete range
@@ -484,21 +484,21 @@ define(function (require, exports, module) {
 
         // move to the start tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.className === "tag" && htmlState(ctxPrevTag).type === "openTag") {
+            if (ctxPrevTag.token.type === "tag" && htmlState(ctxPrevTag).state.name === "attrState") {
                 break;
             }
         }
 
         // move to the end of previous tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.className === "tag" && htmlState(ctxPrevTag).type === "endTag") {
+            if (ctxPrevTag.token.type === "tag" && htmlState(ctxPrevTag).state.name === "baseState") {
                 break;
             }
         }
 
         // next non-whitespace token must be tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
-        if (ctxPrevTag.token.className !== "tag" || htmlState(ctxPrevTag).type !== "closeTag") {
+        if (ctxPrevTag.token.type !== "tag" || htmlState(ctxPrevTag).state.name !== "closeState") {
             return false;
         }
 
@@ -510,12 +510,8 @@ define(function (require, exports, module) {
             return true;
         }
 
-        // move selection to before start of closeTag
-        while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.className === null) {
-                break;
-            }
-        }
+        // move selection to previous token which is start of close tag
+        TokenUtils.movePrevToken(ctxPrevTag);
 
         // delete range
         doc.replaceRange("", selPrevTagStart, sel.end);
