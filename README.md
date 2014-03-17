@@ -9,14 +9,15 @@ This is an Extension for [Brackets](https://github.com/adobe/brackets).
 
 ## Features
 
-This extension is accessed in Brackets using menu Edit &gt; Quick Markup Mode or Ctrl-M.
+This extension is accessed in Brackets using menu **Edit &gt; Quick Markup Mode** or Ctrl-M.
 
 A minimal bottom panel is displayed to indicate you are in quick markup mode. A &quot;mode&quot;
 is required because this extension uses a lot of keyboard shortcuts which conflict with
 some Brackets standard shortcuts. All other Brackets commands and editing work as expected.
+Conflicting shortcuts are removed when this extension is enable and restored when it's disabled.
 
 Quick Markup mode allows fast HTML markup generation as you type similar to what how a
-rich text editor works. It was created with text formatting in mind, but could be extended
+rich text editor works. It was created with text formatting in mind, but can be configured
 for any kind of markup. It currently only works in HTML and PHP documents.
 
 Start adding markup by pressing Ctrl-P to create a paragraph using a &lt;p&gt; tag.
@@ -36,7 +37,7 @@ tag in a similar manner.
 
 The block-level formatting only works for parent tags of 
 &lt;body&gt;, &lt;div&gt;, &lt;section&gt;, &lt;article&gt;, &lt;header&gt;,
-&lt;footer&gt;, &lt;li&gt;, and &lt;blockquote&gt;.
+&lt;footer&gt;, &lt;ol&gt;, &lt;ul&gt;, and &lt;blockquote&gt;.
 
 For inline text formatting,
 selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
@@ -49,7 +50,7 @@ the appropriate line end characters are inserted for the current operating syste
 
 You can switch documents while in quick markup mode.
 
-Shortcuts used to generate markup:
+Default shortcuts used to generate markup:
 
 <table>
   <tr>
@@ -67,6 +68,10 @@ Shortcuts used to generate markup:
   <tr>
     <td><strong>Ctrl-P</strong></td>
     <td>&lt;p&gt;</td>
+  </tr>
+  <tr>
+    <td><strong>Ctrl-L</strong></td>
+    <td>&lt;li&gt;</td>
   </tr>
   <tr>
     <td><strong>Ctrl-1..6</strong></td>
@@ -88,10 +93,10 @@ Shortcuts used to generate markup:
 
 **Note:** Ctrl refers to Ctrl key on Windows or Cmd key on Mac.
 
-Use Edit &gt; Quick Markup Mode Help or Ctrl-Shift-M to see a list of all shortcuts used by this extension.
+Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Shift-M to see a list of all shortcuts used by this extension.
 
-There is a lot more that could be done with this extension.
-Let me know what enhancements you would like.
+The tags and shortcuts are defined in [data.json](https://github.com/redmunds/brackets-quick-markup/blob/master/data.json),
+so they are fully configurable.
 
 ## License
 

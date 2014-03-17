@@ -1,0 +1,59 @@
+{
+    "containerTags": [
+        "article",
+        "blockquote",
+        "body",
+        "div",
+        "footer",
+        "header",
+        "ol",
+        "section",
+        "ul"
+    ],
+    "markupTags": {
+        "del": {
+            "type": "inline",
+            "shortcut": "d"
+        },
+        "em": {
+            "type": "inline",
+            "shortcut": "i"
+        },
+        "h1": {
+            "type": "heading",
+            "shortcut": "1"
+        },
+        "h2": {
+            "type": "heading",
+            "shortcut": "2"
+        },
+        "h3": {
+            "type": "heading",
+            "shortcut": "3"
+        },
+        "h4": {
+            "type": "heading",
+            "shortcut": "4"
+        },
+        "h5": {
+            "type": "heading",
+            "shortcut": "5"
+        },
+        "h6": {
+            "type": "heading",
+            "shortcut": "6"
+        },
+        "li": {
+            "type": "block",
+            "shortcut": "l"
+        },
+        "p": {
+            "type": "block",
+            "shortcut": "p"
+        },
+        "strong": {
+            "type": "inline",
+            "shortcut": "b"
+        }
+    }
+}

@@ -40,8 +40,10 @@ define(function (require, exports, module) {
         Menus               = brackets.getModule("command/Menus"),
         TokenUtils          = brackets.getModule("utils/TokenUtils");
 
-    var panelHtml           = require("text!templates/bottom-panel.html"),
-        cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
+    var data                = JSON.parse(require("text!data.json")),
+        panelHtml           = require("text!templates/bottom-panel.html");
+
+    var cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
         cmdHelpId           = "redmunds.brackets-quick-markup.view.toggle-quick-markup-help",
         modeQuickMarkup     = false,
         helpQuickMarkup     = false,
@@ -53,11 +55,6 @@ define(function (require, exports, module) {
         editor,
         $quickMarkupPanel;
 
-    var containerTagArray       = ["body", "div", "section", "article", "header", "footer", "li", "blockquote"],
-        headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
-        inlineTagArray          = ["del", "em", "strong"],
-        textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"];
-
     // Maintain a list of Ctrl/Cmd key bindings so we can determine conflicts
     // (so they can be disabled in Quick Markup mode). Conflicts are determined
     // whenever QM mode is entered so bindings of extensions installed during
@@ -65,8 +62,7 @@ define(function (require, exports, module) {
     // while in QM mode! Bindings are restored when QM mode is exited.
     // 
     // Note: not sure why Ctrl+Enter is overridden correctly...
-    var quickMarkupShortcuts = ["B", "D", "I", "L", "P", "1", "2", "3", "4", "5", "6"],
-        conflictingBindingsArray = [],
+    var conflictingBindingsArray = [],
         origKeymap;
 
 
@@ -95,19 +91,22 @@ define(function (require, exports, module) {
     }
 
     function isContainerTag(tagName) {
-        return (containerTagArray.indexOf(tagName) !== -1);
+        return (data.containerTags.indexOf(tagName) !== -1);
     }
 
     function isHeadingTag(tagName) {
-        return (headingTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "heading");
     }
 
     function isInlineTag(tagName) {
-        return (inlineTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "inline");
     }
 
     function isTextFormattingTag(tagName) {
-        return (textFormattingTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "block");
     }
 
     function getLineEnding() {
@@ -120,31 +119,15 @@ define(function (require, exports, module) {
     }
 
     function getTagNameFromKeyCode(keyCode) {
-        switch (keyCode) {
-        case KeyEvent.DOM_VK_L:
-            return "li";
-        case KeyEvent.DOM_VK_P:
-            return "p";
-        case KeyEvent.DOM_VK_1:
-            return "h1";
-        case KeyEvent.DOM_VK_2:
-            return "h2";
-        case KeyEvent.DOM_VK_3:
-            return "h3";
-        case KeyEvent.DOM_VK_4:
-            return "h4";
-        case KeyEvent.DOM_VK_5:
-            return "h5";
-        case KeyEvent.DOM_VK_6:
-            return "h6";
-        case KeyEvent.DOM_VK_B:
-            return "strong";
-        case KeyEvent.DOM_VK_I:
-            return "em";
-        case KeyEvent.DOM_VK_D:
-            return "del";
-        default:
-            break;
+        var char = String.fromCharCode(keyCode),
+            tagName;
+
+        for (tagName in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(tagName)) {
+                if (data.markupTags[tagName].shortcut.toUpperCase() === char) {
+                    return tagName;
+                }
+            }
         }
 
         return "";
@@ -354,7 +337,7 @@ define(function (require, exports, module) {
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // paragraph tag
-        if (tagName === "p") {
+        if (isTextFormattingTag(tagName)) {
             splitTag(tagName, sel);
             return true;
         }
@@ -369,18 +352,12 @@ define(function (require, exports, module) {
 
             if (isEOC) {
                 // if IP is at end of heading tag when Ctrl-Enter is pressed, then
-                // user is most likely typing, and wants a paragraph after heading. 
+                // user is most likely typing, and wants a paragraph after heading.
+                // TODO: make this configurable
                 sel = editor.getSelection();
                 changeTagName(tagName, "p", sel);
             }
 
-            return true;
-        }
-
-        // list item tag
-        if (tagName === "li") {
-            // LI - if empty, jump out of list, otherwise split
-            splitTag(tagName, sel);
             return true;
         }
 
@@ -395,7 +372,7 @@ define(function (require, exports, module) {
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isTextFormattingTag(tagName)) {
+        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
             return false;
         }
 
@@ -446,7 +423,7 @@ define(function (require, exports, module) {
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isTextFormattingTag(tagName)) {
+        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
             return false;
         }
 
@@ -496,9 +473,8 @@ define(function (require, exports, module) {
         return true;
     }
 
-    function handleBlockTag(keyCode, sel, ctx) {
-        var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+    function handleBlockTag(newTagName, sel, ctx) {
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         if (newTagName === oldTagName) {
             // same as handling event, but we don't need to do anything
@@ -511,7 +487,7 @@ define(function (require, exports, module) {
                 // create empty tag
                 return wrapTagAroundSelection(newTagName, sel, true);
                 
-            } else if (isTextFormattingTag(oldTagName)) {
+            } else if (isTextFormattingTag(oldTagName) || isHeadingTag(oldTagName)) {
                 // convert old tag to new tag
                 return changeTagName(oldTagName, newTagName, sel);
             }
@@ -527,9 +503,8 @@ define(function (require, exports, module) {
         return false;
     }
 
-    function handleInlineTag(keyCode, sel, ctx) {
-        var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+    function handleInlineTag(newTagName, sel, ctx) {
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // if context is same tag, remove it
         if (newTagName === oldTagName) {
@@ -591,22 +566,18 @@ define(function (require, exports, module) {
             handleBackspaceKey(sel, ctx);
             return true;
 
-        case KeyEvent.DOM_VK_L:                     // li
-        case KeyEvent.DOM_VK_P:                     // p
-        case KeyEvent.DOM_VK_1:                     // h1
-        case KeyEvent.DOM_VK_2:                     // h2
-        case KeyEvent.DOM_VK_3:                     // h3
-        case KeyEvent.DOM_VK_4:                     // h4
-        case KeyEvent.DOM_VK_5:                     // h5
-        case KeyEvent.DOM_VK_6:                     // h6
-            handleBlockTag(event.keyCode, sel, ctx);
-            return true;
-
-        case KeyEvent.DOM_VK_B:                     // strong
-        case KeyEvent.DOM_VK_I:                     // em
-        case KeyEvent.DOM_VK_D:                     // del
-            handleInlineTag(event.keyCode, sel, ctx);
-            return true;
+        default:
+            var newTagName = getTagNameFromKeyCode(event.keyCode),
+                tag        = data.markupTags[newTagName];
+            if (!tag) {
+                return false;
+            } else if (tag.type === "block" || tag.type === "heading") {
+                handleBlockTag(newTagName, sel, ctx);
+                return true;
+            } else if (tag.type === "inline") {
+                handleInlineTag(newTagName, sel, ctx);
+                return true;
+            }
         }
 
         return false;
@@ -624,7 +595,9 @@ define(function (require, exports, module) {
     }
     
     function initQuickMarkupMode() {
-        var bracketsKeymap = KeyBindingManager.getKeymap();
+        var bracketsKeymap = KeyBindingManager.getKeymap(),
+            modifier = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-"),
+            tagName;
 
         initDocument();
         KeyBindingManager.addGlobalKeydownHook(_keydownHook);
@@ -634,17 +607,19 @@ define(function (require, exports, module) {
         origKeymap = $.extend(true, {}, bracketsKeymap);
 
         // Generate list of conflicting shortcuts
-        quickMarkupShortcuts.forEach(function (baseChar) {
-            var shortcut = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-") + baseChar,
-                keybinding = origKeymap[shortcut];
-            if (keybinding) {
-                conflictingBindingsArray.push({
-                    shortcut:  shortcut,
-                    commandID: keybinding.commandID,
-                    platform:  keybinding.platform
-                });
+        for (tagName in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(tagName)) {
+                var shortcut = modifier + data.markupTags[tagName].shortcut.toUpperCase(),
+                    keybinding = origKeymap[shortcut];
+                if (keybinding) {
+                    conflictingBindingsArray.push({
+                        shortcut:  shortcut,
+                        commandID: keybinding.commandID,
+                        platform:  keybinding.platform
+                    });
+                }
             }
-        });
+        }
 
         // Remove conflicting shortcuts
         conflictingBindingsArray.forEach(function (binding) {
