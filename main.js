@@ -21,23 +21,6 @@
  * 
  */
 
-/***
-
-TODO:
-- lists:
-  - ordered, unordered, data?
-  - nest, unnest
-- Ctrl-Enter
-  - if old tag is same as new tag, propagate classes applied to old tag to new tag
-- <br>,<br/> tag? Ctrl-Shift-Enter
-- <div>, <span>
-- HTML5 <section>, with <header>, <article>, <footer>, ?
-- &nbsp; and other entities?
-- img?
-- table?
-
-***/
-
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50 */
 /*global define, brackets, window, $, Mustache */
@@ -57,8 +40,10 @@ define(function (require, exports, module) {
         Menus               = brackets.getModule("command/Menus"),
         TokenUtils          = brackets.getModule("utils/TokenUtils");
 
-    var panelHtml           = require("text!templates/bottom-panel.html"),
-        cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
+    var data                = JSON.parse(require("text!data.json")),
+        panelHtml           = require("text!templates/bottom-panel.html");
+
+    var cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
         cmdHelpId           = "redmunds.brackets-quick-markup.view.toggle-quick-markup-help",
         modeQuickMarkup     = false,
         helpQuickMarkup     = false,
@@ -70,10 +55,10 @@ define(function (require, exports, module) {
         editor,
         $quickMarkupPanel;
 
-    var containerTagArray       = ["body", "div", "section", "article", "header", "footer", "li", "blockquote"],
-        headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
-        inlineTagArray          = ["del", "em", "strong"],
-        textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"];
+//    var containerTagArray       = ["body", "div", "section", "article", "header", "footer", "li", "blockquote"],
+//        headingTagArray         = ["h1", "h2", "h3", "h4", "h5", "h6"],
+//        inlineTagArray          = ["del", "em", "strong"],
+//        textFormattingTagArray  = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"];
 
     // Maintain a list of Ctrl/Cmd key bindings so we can determine conflicts
     // (so they can be disabled in Quick Markup mode). Conflicts are determined
@@ -82,8 +67,9 @@ define(function (require, exports, module) {
     // while in QM mode! Bindings are restored when QM mode is exited.
     // 
     // Note: not sure why Ctrl+Enter is overridden correctly...
-    var quickMarkupShortcuts = ["B", "D", "I", "L", "P", "1", "2", "3", "4", "5", "6"],
-        conflictingBindingsArray = [],
+//    var quickMarkupShortcuts = ["B", "D", "I", "L", "P", "1", "2", "3", "4", "5", "6"],
+//        conflictingBindingsArray = [],
+    var conflictingBindingsArray = [],
         origKeymap;
 
 
@@ -112,19 +98,26 @@ define(function (require, exports, module) {
     }
 
     function isContainerTag(tagName) {
-        return (containerTagArray.indexOf(tagName) !== -1);
+//        return (containerTagArray.indexOf(tagName) !== -1);
+        return (data.containerTags.indexOf(tagName) !== -1);
     }
 
     function isHeadingTag(tagName) {
-        return (headingTagArray.indexOf(tagName) !== -1);
+//        return (headingTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "heading");
     }
 
     function isInlineTag(tagName) {
-        return (inlineTagArray.indexOf(tagName) !== -1);
+//        return (inlineTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "inline");
     }
 
     function isTextFormattingTag(tagName) {
-        return (textFormattingTagArray.indexOf(tagName) !== -1);
+//        return (textFormattingTagArray.indexOf(tagName) !== -1);
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "block");
     }
 
     function getLineEnding() {
@@ -137,31 +130,43 @@ define(function (require, exports, module) {
     }
 
     function getTagNameFromKeyCode(keyCode) {
-        switch (keyCode) {
-        case KeyEvent.DOM_VK_L:
-            return "li";
-        case KeyEvent.DOM_VK_P:
-            return "p";
-        case KeyEvent.DOM_VK_1:
-            return "h1";
-        case KeyEvent.DOM_VK_2:
-            return "h2";
-        case KeyEvent.DOM_VK_3:
-            return "h3";
-        case KeyEvent.DOM_VK_4:
-            return "h4";
-        case KeyEvent.DOM_VK_5:
-            return "h5";
-        case KeyEvent.DOM_VK_6:
-            return "h6";
-        case KeyEvent.DOM_VK_B:
-            return "strong";
-        case KeyEvent.DOM_VK_I:
-            return "em";
-        case KeyEvent.DOM_VK_D:
-            return "del";
-        default:
-            break;
+
+//        switch (keyCode) {
+//        case KeyEvent.DOM_VK_L:
+//            return "li";
+//        case KeyEvent.DOM_VK_P:
+//            return "p";
+//        case KeyEvent.DOM_VK_1:
+//            return "h1";
+//        case KeyEvent.DOM_VK_2:
+//            return "h2";
+//        case KeyEvent.DOM_VK_3:
+//            return "h3";
+//        case KeyEvent.DOM_VK_4:
+//            return "h4";
+//        case KeyEvent.DOM_VK_5:
+//            return "h5";
+//        case KeyEvent.DOM_VK_6:
+//            return "h6";
+//        case KeyEvent.DOM_VK_B:
+//            return "strong";
+//        case KeyEvent.DOM_VK_I:
+//            return "em";
+//        case KeyEvent.DOM_VK_D:
+//            return "del";
+//        default:
+//            break;
+//        }
+
+        var char = String.fromCharCode(keyCode),
+            tagName;
+
+        for (tagName in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(tagName)) {
+                if (data.markupTags[tagName].shortcut.toUpperCase() === char) {
+                    return tagName;
+                }
+            }
         }
 
         return "";
@@ -371,7 +376,8 @@ define(function (require, exports, module) {
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // paragraph tag
-        if (tagName === "p") {
+//        if (tagName === "p") {
+        if (isTextFormattingTag(tagName)) {
             splitTag(tagName, sel);
             return true;
         }
@@ -394,12 +400,12 @@ define(function (require, exports, module) {
             return true;
         }
 
-        // list item tag
-        if (tagName === "li") {
-            // LI - if empty, jump out of list, otherwise split
-            splitTag(tagName, sel);
-            return true;
-        }
+//        // list item tag
+//        if (tagName === "li") {
+//            // LI - if empty, jump out of list, otherwise split
+//            splitTag(tagName, sel);
+//            return true;
+//        }
 
         return false;
     }
@@ -517,9 +523,11 @@ define(function (require, exports, module) {
         return true;
     }
 
-    function handleBlockTag(keyCode, sel, ctx) {
-        var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+//    function handleBlockTag(keyCode, sel, ctx) {
+    function handleBlockTag(newTagName, sel, ctx) {
+//        var newTagName = getTagNameFromKeyCode(keyCode),
+//            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         if (newTagName === oldTagName) {
             // same as handling event, but we don't need to do anything
@@ -548,9 +556,11 @@ define(function (require, exports, module) {
         return false;
     }
 
-    function handleInlineTag(keyCode, sel, ctx) {
-        var newTagName = getTagNameFromKeyCode(keyCode),
-            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+//    function handleInlineTag(keyCode, sel, ctx) {
+    function handleInlineTag(newTagName, sel, ctx) {
+//        var newTagName = getTagNameFromKeyCode(keyCode),
+//            oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // if context is same tag, remove it
         if (newTagName === oldTagName) {
@@ -612,22 +622,34 @@ define(function (require, exports, module) {
             handleBackspaceKey(sel, ctx);
             return true;
 
-        case KeyEvent.DOM_VK_L:                     // li
-        case KeyEvent.DOM_VK_P:                     // p
-        case KeyEvent.DOM_VK_1:                     // h1
-        case KeyEvent.DOM_VK_2:                     // h2
-        case KeyEvent.DOM_VK_3:                     // h3
-        case KeyEvent.DOM_VK_4:                     // h4
-        case KeyEvent.DOM_VK_5:                     // h5
-        case KeyEvent.DOM_VK_6:                     // h6
-            handleBlockTag(event.keyCode, sel, ctx);
-            return true;
-
-        case KeyEvent.DOM_VK_B:                     // strong
-        case KeyEvent.DOM_VK_I:                     // em
-        case KeyEvent.DOM_VK_D:                     // del
-            handleInlineTag(event.keyCode, sel, ctx);
-            return true;
+        default:
+            var newTagName = getTagNameFromKeyCode(event.keyCode),
+                tag        = data.markupTags[newTagName];
+//            case KeyEvent.DOM_VK_L:                     // li
+//            case KeyEvent.DOM_VK_P:                     // p
+//            case KeyEvent.DOM_VK_1:                     // h1
+//            case KeyEvent.DOM_VK_2:                     // h2
+//            case KeyEvent.DOM_VK_3:                     // h3
+//            case KeyEvent.DOM_VK_4:                     // h4
+//            case KeyEvent.DOM_VK_5:                     // h5
+//            case KeyEvent.DOM_VK_6:                     // h6
+//                handleBlockTag(event.keyCode, sel, ctx);
+//                return true;
+//
+//            case KeyEvent.DOM_VK_B:                     // strong
+//            case KeyEvent.DOM_VK_I:                     // em
+//            case KeyEvent.DOM_VK_D:                     // del
+//                handleInlineTag(event.keyCode, sel, ctx);
+//                return true;
+            if (!tag) {
+                return false;
+            } else if (tag.type === "block" || tag.type === "heading") {
+                handleBlockTag(newTagName, sel, ctx);
+                return true;
+            } else if (tag.type === "inline") {
+                handleInlineTag(newTagName, sel, ctx);
+                return true;
+            }
         }
 
         return false;
@@ -645,7 +667,8 @@ define(function (require, exports, module) {
     }
     
     function initQuickMarkupMode() {
-        var bracketsKeymap = KeyBindingManager.getKeymap();
+        var bracketsKeymap = KeyBindingManager.getKeymap(),
+            tagName;
 
         initDocument();
         KeyBindingManager.addGlobalKeydownHook(_keydownHook);
@@ -655,17 +678,22 @@ define(function (require, exports, module) {
         origKeymap = $.extend(true, {}, bracketsKeymap);
 
         // Generate list of conflicting shortcuts
-        quickMarkupShortcuts.forEach(function (baseChar) {
-            var shortcut = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-") + baseChar,
-                keybinding = origKeymap[shortcut];
-            if (keybinding) {
-                conflictingBindingsArray.push({
-                    shortcut:  shortcut,
-                    commandID: keybinding.commandID,
-                    platform:  keybinding.platform
-                });
+//        quickMarkupShortcuts.forEach(function (baseChar) {
+        for (tagName in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(tagName)) {
+//            var shortcut = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-") + baseChar,
+                var shortcut = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-") + data.markupTags[tagName].shortcut.toUpperCase(),
+                    keybinding = origKeymap[shortcut];
+                if (keybinding) {
+                    conflictingBindingsArray.push({
+                        shortcut:  shortcut,
+                        commandID: keybinding.commandID,
+                        platform:  keybinding.platform
+                    });
+                }
             }
-        });
+        }
+//        });
 
         // Remove conflicting shortcuts
         conflictingBindingsArray.forEach(function (binding) {
