@@ -100,9 +100,9 @@ Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Shift-M to see a list of all sh
 The tags and shortcuts are defined in [data.json](https://github.com/redmunds/brackets-quick-markup/blob/master/data.json),
 so they are fully configurable.
 
-Once this extension is installed in Brackets, use **Help > Show Extensions Folder** to navigate to quickly
-navigate to the extensions folder. Hint: drag the folder onto Brackets window to quickly switch the current
-Brackets project to that folder. Open the user/brackets-quickmarkup folder to find the data.json file.
+Once this extension is installed in Brackets, use **Help > Show Extensions Folder** to navigate
+to the extensions folder. Hint: drag the folder onto Brackets window to quickly switch the current
+Brackets project to that folder. Open the user/brackets-quick-markup folder to find the data.json file.
 
 ## License
 
