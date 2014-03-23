@@ -150,10 +150,12 @@ define(function (require, exports, module) {
                 posTag = $.extend(true, {}, pos),
                 ctxNext = TokenUtils.getInitialContext(editor._codeMirror, posTag);
 
-            TokenUtils.movePrevToken(ctxNext);
+            // backup over attributes to the tag
+            do {
+                TokenUtils.movePrevToken(ctxNext);
+            } while (ctxNext.token.type !== "tag");
 
             return (
-                ctxNext.token.type === "tag" &&
                 htmlState(ctxNext).state.name === "attrState" &&
                 ctxNext.token.string === openStr
             );
@@ -318,9 +320,37 @@ define(function (require, exports, module) {
         return true;
     }
 
-    function splitTag(tagName, sel) {
+    function getAttributeString(tagName, sel) {
+        var selAttrStart = $.extend({}, sel.start),
+            ctxAttr = TokenUtils.getInitialContext(editor._codeMirror, selAttrStart),
+            attrStr = "";
+
+        // move to the start tag
+        // TODO: fix case where tag has nested tags between IP and open tag: <p id="x">a <em>b</em> c|</p>
+        do {
+            if (ctxAttr.token.type === "tag" && htmlState(ctxAttr).context.tagName.toLowerCase() === tagName) {
+                break;
+            }
+        } while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxAttr));
+
+        // collect attributes string
+        while (TokenUtils.movePrevToken(ctxAttr)) {
+            if (ctxAttr.token.type === "tag") {
+                break;
+            } else if (htmlState(ctxAttr).state.name.substring(0, 4) === "attr") {
+                // going backwards, so prepend
+                attrStr = ctxAttr.token.string + attrStr;
+            } else {
+                break;  // unknown state, so break to be safe
+            }
+        }
+
+        return attrStr;
+    }
+
+    function splitTag(tagName, attrStr, sel) {
         var insertString = "</" + tagName + ">" + getLineEnding() +
-                           "<" + tagName + ">";
+                           "<" + tagName + attrStr + ">";
 
         doc.replaceRange(insertString, sel.start);
         
@@ -338,7 +368,8 @@ define(function (require, exports, module) {
 
         // paragraph tag
         if (isTextFormattingTag(tagName)) {
-            splitTag(tagName, sel);
+            var attrStr = getAttributeString(tagName, sel);
+            splitTag(tagName, attrStr, sel);
             return true;
         }
 
@@ -348,12 +379,11 @@ define(function (require, exports, module) {
             // is IP at end of content?
             var isEOC = isEndOfContent(sel.start, ctx);
 
-            splitTag(tagName, sel);
+            splitTag(tagName, "", sel);
 
             if (isEOC) {
                 // if IP is at end of heading tag when Ctrl-Enter is pressed, then
                 // user is most likely typing, and wants a paragraph after heading.
-                // TODO: make this configurable
                 sel = editor.getSelection();
                 changeTagName(tagName, "p", sel);
             }
@@ -399,15 +429,18 @@ define(function (require, exports, module) {
         }
 
         // determine if next tag is same as current tag.
-        // TODO: if next tag is joinable, auto-convert it to current tag, then join.
         var nextTagName = htmlState(ctxNextTag).tagName.toLowerCase();
         if (tagName !== nextTagName) {
             // indicate that we handled keystroke so end tag is not partially deleted
             return true;
         }
 
-        // move selection to next token which is end of open tag
-        TokenUtils.moveNextToken(ctxNextTag);
+        // move selection past attributes to end of open tag
+        while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
+            if (htmlState(ctxNextTag).state.name === "baseState") {
+                break;
+            }
+        }
 
         // delete range
         doc.replaceRange("", sel.start, selNextTagEnd);
@@ -541,11 +574,16 @@ define(function (require, exports, module) {
             return false;
         }
 
-        // verify we're in HTML markup & determine tag for IP
+        // verify we're in HTML markup
         var sel = editor.getSelection(),
             ctx = TokenUtils.getInitialContext(editor._codeMirror, sel.start);
 
         if (TokenUtils.getModeAt(editor._codeMirror, sel.start).name !== "html") {
+            return false;
+        }
+
+        // verify IP is in valid position to insert tag
+        if (htmlState(ctx).state.name !== "baseState") {
             return false;
         }
 
@@ -567,6 +605,7 @@ define(function (require, exports, module) {
             return true;
 
         default:
+            // determine tag for IP
             var newTagName = getTagNameFromKeyCode(event.keyCode),
                 tag        = data.markupTags[newTagName];
             if (!tag) {
