@@ -31,7 +31,6 @@ define(function (require, exports, module) {
     // Brackets modules
     var CommandManager      = brackets.getModule("command/CommandManager"),
         DocumentManager     = brackets.getModule("document/DocumentManager"),
-        Editor              = brackets.getModule("editor/Editor").Editor,
         EditorManager       = brackets.getModule("editor/EditorManager"),
         ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
         FileUtils           = brackets.getModule("file/FileUtils"),
@@ -99,10 +98,10 @@ define(function (require, exports, module) {
         return (tag && tag.type === "heading");
     }
 
-    function isInlineTag(tagName) {
-        var tag = data.markupTags[tagName];
-        return (tag && tag.type === "inline");
-    }
+    //function isInlineTag(tagName) {
+    //    var tag = data.markupTags[tagName];
+    //    return (tag && tag.type === "inline");
+    //}
 
     function isTextFormattingTag(tagName) {
         var tag = data.markupTags[tagName];
@@ -110,8 +109,7 @@ define(function (require, exports, module) {
     }
 
     function getLineEnding() {
-        return (FileUtils.getPlatformLineEndings() === FileUtils.LINE_ENDINGS_CRLF)
-                ? "\r\n" : "\n";
+        return (FileUtils.getPlatformLineEndings() === FileUtils.LINE_ENDINGS_CRLF) ? "\r\n" : "\n";
     }
 
     function isIP(sel) {
@@ -189,26 +187,35 @@ define(function (require, exports, module) {
         // Go backwards to the start of the tag
         var tagRangeStart = $.extend({}, sel.start),
             tagRangeEnd   = $.extend({}, sel.end),
-            ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeStart),
-            openStr = "<" + tagName;
+            ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeStart);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctx)) {
-            if (ctx.token.type === "tag" && ctx.token.string === openStr) {
-                // move 1 more token to get "<[tag]"
+            if (ctx.token.type === "tag" && ctx.token.string === tagName) {
+                // move to prev token to get "<[tag]"
                 TokenUtils.movePrevToken(ctx);
+                tagRangeStart.ch = ctx.token.start;
                 break;
             }
         }
 
         // Go forward to the end of the tag
-        var closeStr = "</" + tagName;
+        var closeBracketFound = false;
         ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeEnd);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctx)) {
-            if (ctx.token.type === "tag" && ctx.token.string === closeStr) {
-                // move 1 more token to get ">"
-                TokenUtils.moveNextToken(ctx);
-                break;
+            if (!closeBracketFound) {
+                if (ctx.token.type === "tag bracket" && ctx.token.string === "</") {
+                    closeBracketFound = true;
+                }
+            } else if (closeBracketFound) {
+                if (ctx.token.type === "tag" && ctx.token.string === tagName) {
+                    // move 1 more token to get ">"
+                    TokenUtils.moveNextToken(ctx);
+                    tagRangeEnd.ch = ctx.token.end;
+                    break;
+                } else {
+                    closeBracketFound = false;
+                }
             }
         }
         
