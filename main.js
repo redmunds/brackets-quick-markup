@@ -89,19 +89,15 @@ define(function (require, exports, module) {
         return (docMode && (docMode.match(/html/) || docMode.match(/php/)));
     }
 
-    function isContainerTag(tagName) {
-        return (data.containerTags.indexOf(tagName) !== -1);
-    }
-
     function isHeadingTag(tagName) {
         var tag = data.markupTags[tagName];
         return (tag && tag.type === "heading");
     }
 
-    //function isInlineTag(tagName) {
-    //    var tag = data.markupTags[tagName];
-    //    return (tag && tag.type === "inline");
-    //}
+    function isInlineTag(tagName) {
+        var tag = data.markupTags[tagName];
+        return (tag && tag.type === "inline");
+    }
 
     function isTextFormattingTag(tagName) {
         var tag = data.markupTags[tagName];
@@ -141,11 +137,10 @@ define(function (require, exports, module) {
 
     // Determine if IP in tag is at start of content: <tag>|content</tag>
     function isStartOfContent(pos, ctx) {
-        if (ctx.token.type === "tag" && ctx.token.string === ">") {
+        if (ctx.token.type === "tag bracket" && ctx.token.string === ">") {
             // IP position column is at end of start tag.
             // verify previous token is open tag token.
-            var openStr = "<" + htmlState(ctx).context.tagName.toLowerCase(),
-                posTag = $.extend(true, {}, pos),
+            var posTag = $.extend(true, {}, pos),
                 ctxNext = TokenUtils.getInitialContext(editor._codeMirror, posTag);
 
             // backup over attributes to the tag
@@ -155,7 +150,7 @@ define(function (require, exports, module) {
 
             return (
                 htmlState(ctxNext).state.name === "attrState" &&
-                ctxNext.token.string === openStr
+                ctxNext.token.string === htmlState(ctx).context.tagName.toLowerCase()
             );
         }
 
@@ -164,19 +159,24 @@ define(function (require, exports, module) {
 
     // Determine if IP in tag is at end of content: <tag>content|</tag>
     function isEndOfContent(pos, ctx) {
-        if (ctx.token.end === pos.ch && (ctx.token.type === null || ctx.token.type === "tag")) {
-            // IP position column is at end of text string.
-            // now verify next token is tag-close token.
-            var closeStr = "</" + htmlState(ctx).context.tagName.toLowerCase(),
-                posTag = $.extend(true, {}, pos),
+        if (ctx.token.end === pos.ch && (ctx.token.type === null || ctx.token.type === "tag bracket")) {
+            // IP position column is at end of text string
+            var posTag = $.extend(true, {}, pos),
                 ctxNext = TokenUtils.getInitialContext(editor._codeMirror, posTag);
 
+            // verify next token is tag-close delimiter
             TokenUtils.moveNextToken(ctxNext);
-            
+            if (ctxNext.token.type !== "tag bracket" || ctxNext.token.string !== "</") {
+                return false;
+            }
+
+            // verify next token is tag
+            TokenUtils.moveNextToken(ctxNext);
+
             return (
                 ctxNext.token.type === "tag" &&
                 htmlState(ctxNext).state.name === "closeState" &&
-                ctxNext.token.string === closeStr
+                ctxNext.token.string === htmlState(ctx).context.tagName.toLowerCase()
             );
         }
 
@@ -422,11 +422,25 @@ define(function (require, exports, module) {
         var selNextTagEnd = $.extend({}, sel.end);
         var ctxNextTag = TokenUtils.getInitialContext(editor._codeMirror, selNextTagEnd);
 
-        // move to the close tag
+        // move to the close tag delimiter
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
-            if (ctxNextTag.token.type === "tag" && htmlState(ctxNextTag).state.name === "baseState") {
+            if (ctxNextTag.token.type === "tag bracket" && ctxNextTag.token.string === "</") {
                 break;
             }
+        }
+
+        // move to the close tag name
+        while (TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag)) {
+            if (ctxNextTag.token.type === "tag" && ctxNextTag.token.string === tagName) {
+                TokenUtils.moveNextToken(ctxNextTag);   // skip ">"
+                break;
+            }
+        }
+
+        // next non-whitespace token must be open tag delimter
+        TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag);
+        if (ctxNextTag.token.type !== "tag bracket" || ctxNextTag.token.string === ">") {
+            return false;
         }
 
         // next non-whitespace token must be open tag
@@ -485,9 +499,15 @@ define(function (require, exports, module) {
 
         // move to the end of previous tag
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag)) {
-            if (ctxPrevTag.token.type === "tag" && htmlState(ctxPrevTag).state.name === "baseState") {
+            if (ctxPrevTag.token.type === "tag bracket" && ctxPrevTag.token.string === "<") {
                 break;
             }
+        }
+
+        // next non-whitespace token must be tag delimiter
+        TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
+        if (ctxPrevTag.token.type !== "tag bracket" || ctxPrevTag.token.string !== ">") {
+            return false;
         }
 
         // next non-whitespace token must be tag
@@ -506,6 +526,7 @@ define(function (require, exports, module) {
 
         // move selection to previous token which is start of close tag
         TokenUtils.movePrevToken(ctxPrevTag);
+        selPrevTagStart.ch = ctxPrevTag.token.start;
 
         // delete range
         doc.replaceRange("", selPrevTagStart, sel.end);
@@ -513,7 +534,7 @@ define(function (require, exports, module) {
         return true;
     }
 
-    function handleBlockTag(newTagName, sel, ctx) {
+    function handleBlockTag(newTagName, isInsert, sel, ctx) {
         var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         if (newTagName === oldTagName) {
@@ -521,29 +542,17 @@ define(function (require, exports, module) {
             return true;
         }
 
-        // IP
-        if (isIP(sel)) {
-            if (isContainerTag(oldTagName)) {
-                // create empty tag
-                return wrapTagAroundSelection(newTagName, sel, true);
-                
-            } else if (isTextFormattingTag(oldTagName) || isHeadingTag(oldTagName)) {
-                // convert old tag to new tag
-                return changeTagName(oldTagName, newTagName, sel);
-            }
-
-        // selection
-        } else {
-            if (isContainerTag(oldTagName)) {
-                // raw text - wrap tag around it
-                return wrapTagAroundSelection(newTagName, sel, true);
-            }
+        // context is a different tag
+        if (!isInsert && (isTextFormattingTag(oldTagName) || isHeadingTag(oldTagName))) {
+            // convert existing block/header tag
+            return changeTagName(oldTagName, newTagName, sel);
         }
 
-        return false;
+        // wrap new tag around selection
+        return wrapTagAroundSelection(newTagName, sel, true);
     }
 
-    function handleInlineTag(newTagName, sel, ctx) {
+    function handleInlineTag(newTagName, isInsert, sel, ctx) {
         var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
 
         // if context is same tag, remove it
@@ -551,7 +560,13 @@ define(function (require, exports, module) {
             return changeTagName(oldTagName, "", sel);
         }
 
-        // context is a different tag, so wrap new tag around it
+        // context is a different tag
+        if (!isInsert && isInlineTag(oldTagName)) {
+            // convert existing inline tag
+            return changeTagName(oldTagName, newTagName, sel);
+        }
+
+        // wrap new tag around selection
         return wrapTagAroundSelection(newTagName, sel, false);
     }
 
@@ -560,8 +575,8 @@ define(function (require, exports, module) {
         var ctrlKey = (brackets.platform === "mac") ? event.metaKey : event.ctrlKey;
         
         // quick check for most common cases
-        if (!ctrlKey || event.altKey || event.shiftKey) {
-            // only cases we handle is ctrl with no alt or shift
+        if (!ctrlKey || event.altKey) {
+            // only cases we handle is ctrl with no alt and shift is optional
             return false;
         }
 
@@ -613,15 +628,18 @@ define(function (require, exports, module) {
 
         default:
             // determine tag for IP
+            // default is insert new tag; if shift key then convert existing tag
             var newTagName = getTagNameFromKeyCode(event.keyCode),
-                tag        = data.markupTags[newTagName];
+                tag        = data.markupTags[newTagName],
+                isInsert   = !event.shiftKey;
+
             if (!tag) {
                 return false;
             } else if (tag.type === "block" || tag.type === "heading") {
-                handleBlockTag(newTagName, sel, ctx);
+                handleBlockTag(newTagName, isInsert, sel, ctx);
                 return true;
             } else if (tag.type === "inline") {
-                handleInlineTag(newTagName, sel, ctx);
+                handleInlineTag(newTagName, isInsert, sel, ctx);
                 return true;
             }
         }
@@ -655,8 +673,20 @@ define(function (require, exports, module) {
         // Generate list of conflicting shortcuts
         for (tagName in data.markupTags) {
             if (data.markupTags.hasOwnProperty(tagName)) {
+                // Check Cmd/Ctrl+key
                 var shortcut = modifier + data.markupTags[tagName].shortcut.toUpperCase(),
                     keybinding = origKeymap[shortcut];
+                if (keybinding) {
+                    conflictingBindingsArray.push({
+                        shortcut:  shortcut,
+                        commandID: keybinding.commandID,
+                        platform:  keybinding.platform
+                    });
+                }
+
+                // Check Cmd/Ctrl+Shift+key
+                shortcut = modifier + "Shift-" + data.markupTags[tagName].shortcut.toUpperCase();
+                keybinding = origKeymap[shortcut];
                 if (keybinding) {
                     conflictingBindingsArray.push({
                         shortcut:  shortcut,

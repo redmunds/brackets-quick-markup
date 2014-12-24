@@ -1,15 +1,4 @@
 {
-    "containerTags": [
-        "article",
-        "blockquote",
-        "body",
-        "div",
-        "footer",
-        "header",
-        "ol",
-        "section",
-        "ul"
-    ],
     "markupTags": {
         "del": {
             "type": "inline",
