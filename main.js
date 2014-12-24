@@ -692,6 +692,23 @@ define(function (require, exports, module) {
         origKeymap = null;
     }
 
+    function onResize() {
+        var $qmContent = $quickMarkupPanel.find(".qm-content"),
+            height = heightHeader,
+            helpHeight = 0,
+            tableElt;
+
+        // auto-resize panel to height of content
+        if (helpQuickMarkup) {
+            tableElt = $qmContent.find("table").get(0);
+            helpHeight = parseInt(window.getComputedStyle(tableElt, null).height, 10);
+            height += helpHeight;
+        }
+
+        $qmContent.height(helpHeight);
+        $quickMarkupPanel.height(height);
+    }
+
     // Define the functions that Commands will execute
     function toggleQuickMarkupMode() {
         modeQuickMarkup = !modeQuickMarkup;
@@ -714,11 +731,6 @@ define(function (require, exports, module) {
     }
 
     function toggleQuickMarkupHelp() {
-        var $qmContent = $quickMarkupPanel.find(".qm-content"),
-            height = heightHeader,
-            helpHeight = 0,
-            tableElt;
-
         // viewing help forces quick markup mode on
         if (!modeQuickMarkup) {
             modeQuickMarkup = true;
@@ -733,15 +745,7 @@ define(function (require, exports, module) {
             cmdHelp.setChecked(helpQuickMarkup);
         }
 
-        // auto-resize panel to height of content
-        if (helpQuickMarkup) {
-            tableElt = $qmContent.find("table").get(0);
-            helpHeight = parseInt(window.getComputedStyle(tableElt, null).height, 10);
-            height += helpHeight;
-        }
-
-        $qmContent.height(helpHeight);
-        $quickMarkupPanel.height(height);
+        onResize();
         EditorManager.resizeEditor();
     }
 
@@ -775,6 +779,7 @@ define(function (require, exports, module) {
         }
     
         $(DocumentManager).on("currentDocumentChange", onDocumentChange);
+        $(window).on("resize", onResize);
 
         // Add the HTML UI
         var msData = {};
