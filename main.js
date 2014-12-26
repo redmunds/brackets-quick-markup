@@ -112,6 +112,29 @@ define(function (require, exports, module) {
         return (sel.start.ch === sel.end.ch && sel.start.line === sel.end.line);
     }
 
+    // val my be null, a single edit, or array of edits
+    function queueEdits(edits, val) {
+        if (val) {
+            if (Array.isArray(val)) {
+                val.forEach(function (v) {
+                    edits.push(v);
+                });
+            } else {
+                edits.push(val);
+            }
+        }
+        
+        return edits;   // for chaining
+    }
+
+    // no-op edit to indicate that we handled keystroke and event is not propagated
+    function noOpEdit(sel) {
+        return {
+            edit: {text: "", start: sel.start, end: sel.start},
+            selection: {start: sel.start, end: sel.start, primary: sel.primary, isBeforeEdit: true}
+        };
+    }
+
     function getTagNameFromKeyCode(keyCode) {
         var char = String.fromCharCode(keyCode),
             tagName;
@@ -230,13 +253,13 @@ define(function (require, exports, module) {
 
         // verify tag selection is an not IP
         if (isIP(selTag)) {
-            return false;
+            return null;
         }
 
         // only search on "<h1" (for example) to preserve attributes
         oldTagStr = doc.getRange(selTag.start, selTag.end);
         if (oldTagStr.indexOf("<" + oldTagName) !== 0) {
-            return false;
+            return null;
         }
         oldStartTagIndex = oldTagStr.indexOf(">");
 
@@ -251,16 +274,13 @@ define(function (require, exports, module) {
         var oldCloseTag = "</" + oldTagName + ">",
             oldCloseTagIndex = (newTagStr.length - oldCloseTag.length);
         if (newTagStr.indexOf(oldCloseTag) !== oldCloseTagIndex) {
-            return false;
+            return null;
         }
         
         newTagStr = newTagStr.substr(0, oldCloseTagIndex);
         if (newTagName !== "") {
             newTagStr += "</" + newTagName + ">";
         }
-
-        // update document
-        doc.replaceRange(newTagStr, selTag.start, selTag.end);
 
         // restore selection
         var chDiff = 0;
@@ -273,9 +293,11 @@ define(function (require, exports, module) {
             sel.start.ch += chDiff;
             sel.end.ch   += chDiff;
         }
-        editor.setSelection(sel.start, sel.end);
 
-        return true;
+        return {
+            edit: {text: newTagStr, start: selTag.start, end: selTag.end},
+            selection: {start: sel.start, end: sel.end, primary: sel.primary, isBeforeEdit: false}
+        };
     }
 
     function wrapTagAroundSelection(tagName, sel, isBlock) {
@@ -297,34 +319,23 @@ define(function (require, exports, module) {
             }
         }
 
-        doc.replaceRange(insertString, sel.start, replSelEnd);
-
         // reset selection
         var selNewStart = $.extend({}, sel.start),
             selNewEnd   = $.extend({}, sel.end);
         if (isIP(sel)) {
             selNewStart.ch += openTag.length;
             selNewEnd.ch   += openTag.length;
-            editor.setSelection(selNewStart, selNewEnd);
-
-            if (isBlock) {
-                // smart indent empty tag
-                editor._codeMirror.indentLine(sel.start.line);
-            }
         } else {
             selNewStart.ch += openTag.length;
             if (sel.start.line === sel.end.line) {
                 selNewEnd.ch += openTag.length;
             }
-            editor.setSelection(selNewStart, selNewEnd);
-
-            if (isBlock) {
-                // smart indent selection
-                editor._codeMirror.indentSelection();
-            }
         }
  
-        return true;
+        return {
+            edit: {text: insertString, start: sel.start, end: replSelEnd},
+            selection: {start: selNewStart, end: selNewEnd, primary: sel.primary, isBeforeEdit: false}
+        };
     }
 
     function getAttributeString(tagName, sel) {
@@ -335,7 +346,7 @@ define(function (require, exports, module) {
         // move to the start tag
         // TODO: fix case where tag has nested tags between IP and open tag: <p id="x">a <em>b</em> c|</p>
         do {
-            if (ctxAttr.token.type === "tag" && htmlState(ctxAttr).context.tagName.toLowerCase() === tagName) {
+            if (ctxAttr.token.type === "tag bracket" && htmlState(ctxAttr).context.tagName.toLowerCase() === tagName) {
                 break;
             }
         } while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxAttr));
@@ -359,63 +370,77 @@ define(function (require, exports, module) {
         var insertString = "</" + tagName + ">" + getLineEnding() +
                            "<" + tagName + attrStr + ">";
 
-        doc.replaceRange(insertString, sel.start);
-        
-        // smart indent line we just added
-        editor._codeMirror.indentLine(sel.start.line + 1);
+        return {
+            edit: {text: insertString, start: sel.start},
+            selection: {start: sel.start, end: sel.start, primary: sel.primary, isBeforeEdit: true}
+        };
+    }
+
+    // uses start pos
+    function addTagOnNextLine(tagName, attrStr, sel) {
+        var insertString = getLineEnding() + "<" + tagName + attrStr + "></" + tagName + ">",
+            startLineLen = editor._codeMirror.getLine(sel.start.line).length,
+            newSelCh = tagName.length + attrStr.length + 2;
+
+        // move edit selection to end of line
+        var insertPos = {
+            start: {line: sel.start.line, ch: startLineLen},
+            end:   {line: sel.start.line, ch: startLineLen}
+        };
+
+        // put selection inside new tag
+        var newSel = {
+            start: {line: sel.start.line + 1, ch: newSelCh},
+            end:   {line: sel.start.line + 1, ch: newSelCh}
+        };
+
+        return {
+            edit: {text: insertString, start: insertPos.start},
+            selection: {start: newSel.start, end: newSel.start, primary: sel.primary, isBeforeEdit: false}
+        };
     }
 
     function handleEnterKey(sel, ctx) {
         // only operate on IP
         if (!isIP(sel)) {
-            return false;
+            return null;
         }
 
-        var tagName = htmlState(ctx).context.tagName.toLowerCase();
+        var tagName = htmlState(ctx).context.tagName.toLowerCase(),
+            attrStr = "",
+            edits = [];
 
-        // paragraph tag
-        if (isTextFormattingTag(tagName)) {
-            var attrStr = getAttributeString(tagName, sel);
-            splitTag(tagName, attrStr, sel);
-            return true;
+        // currently only for block-level tags
+        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
+            return null;
         }
 
-        // heading tags
-        if (isHeadingTag(tagName)) {
-
-            // is IP at end of content?
-            var isEOC = isEndOfContent(sel.start, ctx);
-
-            splitTag(tagName, "", sel);
-
-            if (isEOC) {
-                // if IP is at end of heading tag when Ctrl-Enter is pressed, then
-                // user is most likely typing, and wants a paragraph after heading.
-                sel = editor.getSelection();
-                changeTagName(tagName, "p", sel);
-            }
-
-            return true;
+        if (isHeadingTag(tagName) && isEndOfContent(sel.start, ctx)) {
+            // if IP is at end of heading tag when Ctrl-Enter is pressed, then
+            // user is most likely typing, and wants a paragraph after heading.
+            return queueEdits(edits, addTagOnNextLine("p", "", sel));
         }
 
-        return false;
+        attrStr = getAttributeString(tagName, sel);
+
+        return queueEdits(edits, splitTag(tagName, attrStr, sel));
     }
 
     function handleDeleteKey(sel, ctx) {
         // only operate on IP
         if (!isIP(sel)) {
-            return false;
+            return null;
         }
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
         if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
-            return false;
+            return null;
         }
 
         // only valid at end of content
         if (!isEndOfContent(sel.start, ctx)) {
-            return false;
+            return null;
         }
 
         // determine if there is a next sibling tag
@@ -440,20 +465,20 @@ define(function (require, exports, module) {
         // next non-whitespace token must be open tag delimter
         TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag);
         if (ctxNextTag.token.type !== "tag bracket" || ctxNextTag.token.string === ">") {
-            return false;
+            return null;
         }
 
         // next non-whitespace token must be open tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.moveNextToken, ctxNextTag);
         if (ctxNextTag.token.type !== "tag" || htmlState(ctxNextTag).state.name !== "attrState") {
-            return false;
+            return null;
         }
 
         // determine if next tag is same as current tag.
         var nextTagName = htmlState(ctxNextTag).tagName.toLowerCase();
         if (tagName !== nextTagName) {
-            // indicate that we handled keystroke so end tag is not partially deleted
-            return true;
+            // return a no-op edit to indicate that we handled keystroke so end tag is not partially deleted
+            return noOpEdit(sel);
         }
 
         // move selection past attributes to end of open tag
@@ -464,26 +489,27 @@ define(function (require, exports, module) {
         }
 
         // delete range
-        doc.replaceRange("", sel.start, selNextTagEnd);
-
-        return true;
+        return {
+            edit: {text: "", start: sel.start, end: selNextTagEnd},
+            selection: {start: sel.start, end: sel.start, primary: sel.primary, isBeforeEdit: true}
+        };
     }
 
     function handleBackspaceKey(sel, ctx) {
         // only operate on IP
         if (!isIP(sel)) {
-            return false;
+            return null;
         }
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
         if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
-            return false;
+            return null;
         }
 
         // only valid at start of content
         if (!isStartOfContent(sel.start, ctx)) {
-            return false;
+            return null;
         }
 
         // determine if there is a previous sibling tag
@@ -507,21 +533,21 @@ define(function (require, exports, module) {
         // next non-whitespace token must be tag delimiter
         TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
         if (ctxPrevTag.token.type !== "tag bracket" || ctxPrevTag.token.string !== ">") {
-            return false;
+            return null;
         }
 
         // next non-whitespace token must be tag
         TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctxPrevTag);
         if (ctxPrevTag.token.type !== "tag" || htmlState(ctxPrevTag).state.name !== "closeState") {
-            return false;
+            return null;
         }
 
         // determine if previous tag is same as current tag.
         // TODO: if previous tag is joinable, auto-convert it to current tag, then join.
         var prevTagName = htmlState(ctxPrevTag).context.tagName.toLowerCase();
         if (tagName !== prevTagName) {
-            // indicate that we handled keystroke so start tag is not partially deleted
-            return true;
+            // return a no-op edit to indicate that we handled keystroke so end tag is not partially deleted
+            return noOpEdit(sel);
         }
 
         // move selection to previous token which is start of close tag
@@ -529,45 +555,93 @@ define(function (require, exports, module) {
         selPrevTagStart.ch = ctxPrevTag.token.start;
 
         // delete range
-        doc.replaceRange("", selPrevTagStart, sel.end);
-
-        return true;
+        return {
+            edit: {text: "", start: selPrevTagStart, end: sel.end},
+            selection: {start: sel.start, end: sel.start, primary: sel.primary, isBeforeEdit: true}
+        };
     }
 
     function handleBlockTag(newTagName, isInsert, sel, ctx) {
-        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase(),
+            edits = [];
 
         if (newTagName === oldTagName) {
             // same as handling event, but we don't need to do anything
-            return true;
+            return noOpEdit(sel);
         }
 
         // context is a different tag
         if (!isInsert && (isTextFormattingTag(oldTagName) || isHeadingTag(oldTagName))) {
             // convert existing block/header tag
-            return changeTagName(oldTagName, newTagName, sel);
+            return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
         }
 
         // wrap new tag around selection
-        return wrapTagAroundSelection(newTagName, sel, true);
+        return queueEdits(edits, wrapTagAroundSelection(newTagName, sel, true));
     }
 
     function handleInlineTag(newTagName, isInsert, sel, ctx) {
-        var oldTagName = htmlState(ctx).context.tagName.toLowerCase();
+        var oldTagName = htmlState(ctx).context.tagName.toLowerCase(),
+            edits = [];
 
         // if context is same tag, remove it
         if (newTagName === oldTagName) {
-            return changeTagName(oldTagName, "", sel);
+            return queueEdits(edits, changeTagName(oldTagName, "", sel));
         }
 
         // context is a different tag
         if (!isInsert && isInlineTag(oldTagName)) {
             // convert existing inline tag
-            return changeTagName(oldTagName, newTagName, sel);
+            return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
         }
 
         // wrap new tag around selection
-        return wrapTagAroundSelection(newTagName, sel, false);
+        return queueEdits(edits, wrapTagAroundSelection(newTagName, sel, false));
+    }
+
+    function getEdits(sel, keyCode, isInsert) {
+        var ctx = TokenUtils.getInitialContext(editor._codeMirror, sel.start);
+
+        // verify we're in HTML markup
+        if (TokenUtils.getModeAt(editor._codeMirror, sel.start).name !== "html") {
+            return null;
+        }
+
+        // verify IP is in valid position to insert tag
+        if (htmlState(ctx).state.name !== "baseState") {
+            return null;
+        }
+
+        // all functions called in switch statement return value indicating
+        // whether any change was made for key, but we always want to return
+        // true so no further processing is done
+        switch (keyCode) {
+
+        case KeyEvent.DOM_VK_RETURN:                // Enter
+            return handleEnterKey(sel, ctx);
+
+        case KeyEvent.DOM_VK_DELETE:                // Delete
+            return handleDeleteKey(sel, ctx);
+
+        case KeyEvent.DOM_VK_BACK_SPACE:            // Backspace
+            return handleBackspaceKey(sel, ctx);
+
+        default:
+            // determine tag for IP
+            // default is insert new tag; if shift key then convert existing tag
+            var newTagName = getTagNameFromKeyCode(keyCode),
+                tag        = data.markupTags[newTagName];
+
+            if (!tag) {
+                return null;
+            } else if (tag.type === "block" || tag.type === "heading") {
+                return handleBlockTag(newTagName, isInsert, sel, ctx);
+            } else if (tag.type === "inline") {
+                return handleInlineTag(newTagName, isInsert, sel, ctx);
+            }
+        }
+
+        return null;
     }
 
     function handleKey(event) {
@@ -596,55 +670,32 @@ define(function (require, exports, module) {
             return false;
         }
 
-        // verify we're in HTML markup
-        var sel = editor.getSelection(),
-            ctx = TokenUtils.getInitialContext(editor._codeMirror, sel.start);
+        var selections = editor.getSelections(),
+            edits = [];
 
-        if (TokenUtils.getModeAt(editor._codeMirror, sel.start).name !== "html") {
-            return false;
-        }
+        // get edits
+        selections.forEach(function (sel) {
+            queueEdits(edits, getEdits(sel, event.keyCode, !event.shiftKey));
+        });
 
-        // verify IP is in valid position to insert tag
-        if (htmlState(ctx).state.name !== "baseState") {
-            return false;
-        }
+        // batch for single undo
+        doc.batchOperation(function () {
+            // perform edits
+            selections = editor.document.doMultipleEdits(edits);
+            editor.setSelections(selections);
 
-        // all functions called in switch statement return value indicating
-        // whether any change was made for key, but we always want to return
-        // true so no further processing is done
-        switch (event.keyCode) {
+            // indent lines with selections
+            selections.forEach(function (sel) {
+                if (!sel.end || sel.start.line === sel.end.line) {
+                // The document is the one that batches operations, but we want to use
+                // CodeMirror's indent operation. So we need to use the document's own
+                // backing editor's CodeMirror to do the indentation.
+                    doc._masterEditor._codeMirror.indentLine(sel.start.line);
+                }
+            });
+        });
 
-        case KeyEvent.DOM_VK_RETURN:                // Enter
-            handleEnterKey(sel, ctx);
-            return true;
-
-        case KeyEvent.DOM_VK_DELETE:                // Delete
-            handleDeleteKey(sel, ctx);
-            return true;
-
-        case KeyEvent.DOM_VK_BACK_SPACE:            // Backspace
-            handleBackspaceKey(sel, ctx);
-            return true;
-
-        default:
-            // determine tag for IP
-            // default is insert new tag; if shift key then convert existing tag
-            var newTagName = getTagNameFromKeyCode(event.keyCode),
-                tag        = data.markupTags[newTagName],
-                isInsert   = !event.shiftKey;
-
-            if (!tag) {
-                return false;
-            } else if (tag.type === "block" || tag.type === "heading") {
-                handleBlockTag(newTagName, isInsert, sel, ctx);
-                return true;
-            } else if (tag.type === "inline") {
-                handleInlineTag(newTagName, isInsert, sel, ctx);
-                return true;
-            }
-        }
-
-        return false;
+        return (edits.length > 0);
     }
 
     function _keydownHook(event) {

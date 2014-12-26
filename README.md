@@ -20,6 +20,7 @@ Quick Markup mode allows fast HTML markup generation as you type similar to what
 rich text editor works. It was created with text formatting in mind, but can be configured
 for any kind of markup. It currently only works in HTML and PHP documents.
 
+### Text Formatting
 Start adding markup by pressing Ctrl-P to create a paragraph using a &lt;p&gt; tag.
 The tag will be wrapped around the currently selected &quot;raw&quot; text.
 
@@ -35,8 +36,8 @@ or heading tag joins the tag with the following sibling (if tag is the same).
 Pressing Ctrl-Backspace at the start of the (inner) text joins with the previous
 tag in a similar manner.
 
-For inline text formatting,
-selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
+### Inline Text Formatting
+Selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
 Pressing Ctrl-B again removes the &lt;strong&gt; tag.
 There is similar behavior pressing Ctrl-I for &lt;em&gt;
 and pressing Ctrl-D for &lt;del&gt;.
