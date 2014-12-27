@@ -36,6 +36,7 @@ define(function (require, exports, module) {
         FileUtils           = brackets.getModule("file/FileUtils"),
         KeyBindingManager   = brackets.getModule("command/KeyBindingManager"),
         KeyEvent            = brackets.getModule("utils/KeyEvent"),
+        MainViewManager     = brackets.getModule("view/MainViewManager"),
         Menus               = brackets.getModule("command/Menus"),
         TokenUtils          = brackets.getModule("utils/TokenUtils"),
         WorkspaceManager    = brackets.getModule("view/WorkspaceManager");
@@ -831,7 +832,7 @@ define(function (require, exports, module) {
         WorkspaceManager.recomputeLayout();
     }
 
-    function onDocumentChange() {
+    function handleCurrentFileChange() {
         // clear these fields -- they get updated on next usage
         clearDocument();
     }
@@ -860,7 +861,7 @@ define(function (require, exports, module) {
             edit_menu.addMenuItem(cmdHelpId,   "Ctrl-Shift-M");
         }
     
-        $(DocumentManager).on("currentDocumentChange", onDocumentChange);
+        MainViewManager.on("currentFileChange", handleCurrentFileChange);
         $(window).on("resize", onResize);
 
         // Add the HTML UI
