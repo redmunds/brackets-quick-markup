@@ -37,7 +37,8 @@ define(function (require, exports, module) {
         KeyBindingManager   = brackets.getModule("command/KeyBindingManager"),
         KeyEvent            = brackets.getModule("utils/KeyEvent"),
         Menus               = brackets.getModule("command/Menus"),
-        TokenUtils          = brackets.getModule("utils/TokenUtils");
+        TokenUtils          = brackets.getModule("utils/TokenUtils"),
+        WorkspaceManager    = brackets.getModule("view/WorkspaceManager");
 
     var data                = JSON.parse(require("text!data.json")),
         panelHtml           = require("text!templates/bottom-panel.html");
@@ -808,7 +809,7 @@ define(function (require, exports, module) {
             clearQuickMarkupMode();
             $quickMarkupPanel.hide();
         }
-        EditorManager.resizeEditor();
+        WorkspaceManager.recomputeLayout();
     }
 
     function toggleQuickMarkupHelp() {
@@ -827,7 +828,7 @@ define(function (require, exports, module) {
         }
 
         onResize();
-        EditorManager.resizeEditor();
+        WorkspaceManager.recomputeLayout();
     }
 
     function onDocumentChange() {
