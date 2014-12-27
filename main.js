@@ -39,10 +39,12 @@ define(function (require, exports, module) {
         MainViewManager     = brackets.getModule("view/MainViewManager"),
         Menus               = brackets.getModule("command/Menus"),
         TokenUtils          = brackets.getModule("utils/TokenUtils"),
-        WorkspaceManager    = brackets.getModule("view/WorkspaceManager");
+        WorkspaceManager    = brackets.getModule("view/WorkspaceManager"),
+        _                   = brackets.getModule("thirdparty/lodash");
 
     var data                = JSON.parse(require("text!data.json")),
-        panelHtml           = require("text!templates/bottom-panel.html");
+        panelHtml           = require("text!templates/bottom-panel.html"),
+        tableRowHtml        = require("text!templates/table-row.html");
 
     var cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
         cmdHelpId           = "redmunds.brackets-quick-markup.view.toggle-quick-markup-help",
@@ -837,6 +839,43 @@ define(function (require, exports, module) {
         clearDocument();
     }
 
+    function initPanel() {
+        var msData = {};
+        msData.keyString = (brackets.platform === "mac") ? "Cmd" : "Ctrl";
+        var s = Mustache.render(panelHtml, msData);
+        $(".content").append(s);
+
+        $quickMarkupPanel = $("#quick-markup");
+
+        // Add keys from json
+        var $table = $quickMarkupPanel.find(".qm-content table"),
+            cellData = {};
+
+        cellData.keyString = msData.keyString;
+        cellData.cells = [];
+
+        function appendRow() {
+            var row = Mustache.render(tableRowHtml, cellData);
+            $table.append(row);
+        }
+
+        // Add row for every 3 tags
+        _.forEach(data.markupTags, function (tag, id) {
+            cellData.cells.push({key: tag.shortcut.toUpperCase(), tag: "<" + id + ">"});
+            if (cellData.cells.length === 3) {
+                appendRow();
+                cellData.cells = [];
+            }
+        });
+
+        // Last partial row
+        if (cellData.cells.length > 0) {
+            appendRow();
+        }
+
+        $quickMarkupPanel.hide();
+    }
+
     // initialize extension
     function init() {
         ExtensionUtils.loadStyleSheet(module, "quick-markup.css");
@@ -865,13 +904,7 @@ define(function (require, exports, module) {
         $(window).on("resize", onResize);
 
         // Add the HTML UI
-        var msData = {};
-        msData.keyString = (brackets.platform === "mac") ? "Cmd" : "Ctrl";
-        var s = Mustache.render(panelHtml, msData);
-        $(".content").append(s);
-
-        $quickMarkupPanel = $("#quick-markup");
-        $quickMarkupPanel.hide();
+        initPanel();
     }
 
     // initialize
