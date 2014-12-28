@@ -46,9 +46,10 @@ define(function (require, exports, module) {
         panelHtml           = require("text!templates/bottom-panel.html"),
         tableRowHtml        = require("text!templates/table-row.html");
 
-    var cmdMarkupId         = "redmunds.brackets-quick-markup.view.toggle-quick-markup",
-        cmdHelpId           = "redmunds.brackets-quick-markup.view.toggle-quick-markup-help",
-        modeQuickMarkup     = false,
+    var TOGGLE_QUICK_MARKUP      = "redmunds.brackets-quick-markup.edit.toggle-quick-markup",
+        TOGGLE_QUICK_MARKUP_HELP = "redmunds.brackets-quick-markup.edit.toggle-quick-markup-help";
+
+    var modeQuickMarkup     = false,
         helpQuickMarkup     = false,
         heightHeader        = 30,
         cmdMarkup,
@@ -69,9 +70,9 @@ define(function (require, exports, module) {
         origKeymap;
 
 
-    function initDocument() {
-        doc     = DocumentManager.getCurrentDocument();
-        editor  = EditorManager.getCurrentFullEditor();
+    function initDocument(testDocument, testEditor) {
+        doc     = testDocument || DocumentManager.getCurrentDocument();
+        editor  = testEditor   || EditorManager.getCurrentFullEditor();
         if (editor) {
             // mode may be a string or an object (with name property)
             var cmMode = editor.getModeForDocument();
@@ -648,7 +649,7 @@ define(function (require, exports, module) {
         return null;
     }
 
-    function handleKey(event) {
+    function handleKey(event, testDocument, testEditor) {
         // Diferentiate Ctrl key from Cmd key on mac platform
         var ctrlKey = (brackets.platform === "mac") ? event.metaKey : event.ctrlKey;
         
@@ -664,7 +665,7 @@ define(function (require, exports, module) {
             return false;
         }
 
-        initDocument();
+        initDocument(testDocument, testEditor);
         if (!doc || !editor) {
             return false;
         }
@@ -718,7 +719,6 @@ define(function (require, exports, module) {
             modifier = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-"),
             tagName;
 
-        initDocument();
         KeyBindingManager.addGlobalKeydownHook(_keydownHook);
 
         // Save copy for restoring. Extensions can be loaded on-the-fly,
@@ -815,6 +815,22 @@ define(function (require, exports, module) {
         WorkspaceManager.recomputeLayout();
     }
 
+    // Unit testing only - enable with no UI
+    function _enableQuickMarkupMode() {
+        if (!modeQuickMarkup) {
+            modeQuickMarkup = true;
+            initQuickMarkupMode();
+        }
+    }
+
+    // Unit testing only - disable with no UI
+    function _disableQuickMarkupMode() {
+        if (modeQuickMarkup) {
+            modeQuickMarkup = false;
+            clearQuickMarkupMode();
+        }
+    }
+
     function toggleQuickMarkupHelp() {
         // viewing help forces quick markup mode on
         if (!modeQuickMarkup) {
@@ -881,13 +897,13 @@ define(function (require, exports, module) {
         ExtensionUtils.loadStyleSheet(module, "quick-markup.css");
 
         // Register command to toggle mode
-        cmdMarkup = CommandManager.register("Quick Markup Mode", cmdMarkupId, toggleQuickMarkupMode);
+        cmdMarkup = CommandManager.register("Quick Markup Mode", TOGGLE_QUICK_MARKUP, toggleQuickMarkupMode);
         if (cmdMarkup) {
             cmdMarkup.setChecked(modeQuickMarkup);
         }
     
         // Register command to toggle help
-        cmdHelp = CommandManager.register("Quick Markup Help", cmdHelpId, toggleQuickMarkupHelp);
+        cmdHelp = CommandManager.register("Quick Markup Help", TOGGLE_QUICK_MARKUP_HELP, toggleQuickMarkupHelp);
         if (cmdHelp) {
             cmdHelp.setChecked(helpQuickMarkup);
         }
@@ -896,8 +912,8 @@ define(function (require, exports, module) {
         var edit_menu = Menus.getMenu(Menus.AppMenuBar.EDIT_MENU);
         if (edit_menu) {
             edit_menu.addMenuDivider();
-            edit_menu.addMenuItem(cmdMarkupId, "Ctrl-M");
-            edit_menu.addMenuItem(cmdHelpId,   "Ctrl-Shift-M");
+            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP,      "Ctrl-M");
+            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP_HELP, "Ctrl-Shift-M");
         }
     
         MainViewManager.on("currentFileChange", handleCurrentFileChange);
@@ -909,4 +925,9 @@ define(function (require, exports, module) {
 
     // initialize
     init();
+
+    // Unit Test API
+    exports._disableQuickMarkupMode = _disableQuickMarkupMode;
+    exports._enableQuickMarkupMode  = _enableQuickMarkupMode;
+    exports._handleKey              = handleKey;
 });

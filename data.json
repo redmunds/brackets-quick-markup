@@ -1,7 +1,7 @@
 {
     "markupTags": {
-        "del": {
-            "type": "inline",
+        "div": {
+            "type": "block",
             "shortcut": "d"
         },
         "em": {
