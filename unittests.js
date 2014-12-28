@@ -58,9 +58,20 @@ define(function (require, exports, module) {
         });
 
         function makeCtrlKeyEvent(keyCode, isShift) {
+            var ctrlKey, metaKey;
+
             isShift = isShift || false;
+            if (brackets.platform === "mac") {
+                ctrlKey = false;
+                metaKey = true;
+            } else {
+                ctrlKey = true;
+                metaKey = false;
+            }
+
             return {
-                ctrlKey: true,
+                ctrlKey: ctrlKey,
+                metaKey: metaKey,
                 shiftKey: isShift,
                 keyCode: keyCode,
                 immediatePropagationStopped: false,
