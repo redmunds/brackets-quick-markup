@@ -20,12 +20,13 @@ Quick Markup mode allows fast HTML markup generation as you type similar to what
 rich text editor works. It was created with text formatting in mind, but can be configured
 for any kind of markup. It currently only works in HTML and PHP documents.
 
+### Text Formatting
 Start adding markup by pressing Ctrl-P to create a paragraph using a &lt;p&gt; tag.
 The tag will be wrapped around the currently selected &quot;raw&quot; text.
 
 As you are typing, pressing Ctrl-Enter closes the current &lt;p&gt; tag and starts a new one.
 To convert a &lt;p&gt; tag to a heading, where heading refers to any &lt;h1&gt; through
-&lt;h6&gt; tag, press Ctrl-1 through Ctrl-6, respectively. At the end of a heading tag,
+&lt;h6&gt; tag, press Ctrl-Shift-1 through Ctrl-Shift-6, respectively. At the end of a heading tag,
 pressing Ctrl-Enter closes the heading tag, and then starts a new &lt;p&gt; tag,
 as this is most likely what you'll want next.
 
@@ -35,12 +36,8 @@ or heading tag joins the tag with the following sibling (if tag is the same).
 Pressing Ctrl-Backspace at the start of the (inner) text joins with the previous
 tag in a similar manner.
 
-The block-level formatting only works for parent tags of 
-&lt;body&gt;, &lt;div&gt;, &lt;section&gt;, &lt;article&gt;, &lt;header&gt;,
-&lt;footer&gt;, &lt;ol&gt;, &lt;ul&gt;, and &lt;blockquote&gt;.
-
-For inline text formatting,
-selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
+### Inline Text Formatting
+Selecting text and pressing Ctrl-B applies a &lt;strong&gt; tag.
 Pressing Ctrl-B again removes the &lt;strong&gt; tag.
 There is similar behavior pressing Ctrl-I for &lt;em&gt;
 and pressing Ctrl-D for &lt;del&gt;.
@@ -53,18 +50,6 @@ You can switch documents while in quick markup mode.
 Default shortcuts used to generate markup:
 
 <table>
-  <tr>
-    <td><strong>Ctrl-Enter</strong></td>
-    <td>Split Tag or Start New Tag</td>
-  </tr>
-  <tr>
-    <td><strong>Ctrl-Delete</strong></td>
-    <td>Join Next Sibling Tag</td>
-  </tr>
-  <tr>
-    <td><strong>Ctrl-Backspace</strong></td>
-    <td>Join Previous Sibling Tag</td>
-  </tr>
   <tr>
     <td><strong>Ctrl-P</strong></td>
     <td>&lt;p&gt;</td>
@@ -88,6 +73,23 @@ Default shortcuts used to generate markup:
   <tr>
     <td><strong>Ctrl-D</strong></td>
     <td>&lt;del&gt;</td>
+  </tr>
+</table>
+
+**Note:** Ctrl + [key] *inserts* new tag. Ctrl + Shift + [key] *changes* existing tag.
+
+<table>
+  <tr>
+    <td><strong>Ctrl-Enter</strong></td>
+    <td>Split Tag or Start New Tag</td>
+  </tr>
+  <tr>
+    <td><strong>Ctrl-Delete</strong></td>
+    <td>Join Next Sibling Tag</td>
+  </tr>
+  <tr>
+    <td><strong>Ctrl-Backspace</strong></td>
+    <td>Join Previous Sibling Tag</td>
   </tr>
 </table>
 
