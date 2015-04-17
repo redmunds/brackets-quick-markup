@@ -649,6 +649,32 @@ define(function (require, exports, module) {
         return null;
     }
 
+    function shouldIndent(keyCode) {
+        switch (keyCode) {
+
+        case KeyEvent.DOM_VK_RETURN:                // Enter
+        case KeyEvent.DOM_VK_DELETE:                // Delete
+        case KeyEvent.DOM_VK_BACK_SPACE:            // Backspace
+            return true;
+
+        default:
+            // determine tag for IP
+            // default is insert new tag; if shift key then convert existing tag
+            var newTagName = getTagNameFromKeyCode(keyCode),
+                tag        = data.markupTags[newTagName];
+
+            if (!tag) {
+                return false;
+            } else if (tag.type === "block" || tag.type === "heading") {
+                return true;
+            } else if (tag.type === "inline") {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     function handleKey(event, testDocument, testEditor) {
         // Diferentiate Ctrl key from Cmd key on mac platform
         var ctrlKey = (brackets.platform === "mac") ? event.metaKey : event.ctrlKey;
@@ -676,7 +702,8 @@ define(function (require, exports, module) {
         }
 
         var selections = editor.getSelections(),
-            edits = [];
+            edits = [],
+            indent = shouldIndent(event.keyCode);
 
         // get edits
         selections.forEach(function (sel) {
@@ -689,15 +716,17 @@ define(function (require, exports, module) {
             selections = editor.document.doMultipleEdits(edits);
             editor.setSelections(selections);
 
-            // indent lines with selections
-            selections.forEach(function (sel) {
-                if (!sel.end || sel.start.line === sel.end.line) {
-                // The document is the one that batches operations, but we want to use
-                // CodeMirror's indent operation. So we need to use the document's own
-                // backing editor's CodeMirror to do the indentation.
-                    doc._masterEditor._codeMirror.indentLine(sel.start.line);
-                }
-            });
+            if (indent) {
+                // indent lines with selections
+                selections.forEach(function (sel) {
+                    if (!sel.end || sel.start.line === sel.end.line) {
+                    // The document is the one that batches operations, but we want to use
+                    // CodeMirror's indent operation. So we need to use the document's own
+                    // backing editor's CodeMirror to do the indentation.
+                        doc._masterEditor._codeMirror.indentLine(sel.start.line);
+                    }
+                });
+            }
         });
 
         return (edits.length > 0);

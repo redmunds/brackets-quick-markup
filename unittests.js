@@ -417,7 +417,6 @@ define(function (require, exports, module) {
                 );
             });
         });
-
         describe("Block formatting", function () {
             var testContent =
                 "<html>\n" +
@@ -611,6 +610,69 @@ define(function (require, exports, module) {
                         { start: { line: 3, ch: 29 }, end:  { line: 3, ch: 32 }, reversed: false, primary: true }
                     ]
                 );
+            });
+        });
+
+        describe("Source formatting", function () {
+            var testContent =
+                "<html>\n" +
+                "    <body>\n" +
+                "    <h1>Top Header</h1>\n" +
+                "    <p>Hello</p>\n" +
+                "    World\n" +
+                "    <p>Lorem <strong>ipsum</strong> dolor</p>\n" +
+                "\n" +
+                "    </body>\n" +
+                "<html>\n";
+
+            beforeEach(function () {
+                setupTest(testContent);
+            });
+
+            afterEach(function () {
+                tearDownTest();
+            });
+
+            it("should insert block level tag at IP and properly indent line", function () {
+                testEditor.setCursorPos({ line: 6, ch: 0 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_D), testDocument, testEditor);
+                expect(testDocument.getLine(6)).toEqual("        <div></div>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 6, ch: 13 });
+            });
+
+            it("should wrap block level tag around text and properly indent line", function () {
+                testEditor.setSelection({ line: 4, ch: 4 }, { line: 4, ch: 9 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_D), testDocument, testEditor);
+                expect(testDocument.getLine(4)).toEqual("        <div>World</div>");
+                expect(testEditor.getSelection()).toEqual({ start: { line: 4, ch: 13 }, end:  { line: 4, ch: 18 }, reversed: false });
+            });
+
+            it("should change block level tag containing IP and properly indent line", function () {
+                testEditor.setCursorPos({ line: 2, ch: 12 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_2, true), testDocument, testEditor);
+                expect(testDocument.getLine(2)).toEqual("        <h2>Top Header</h2>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 2, ch: 16 });
+            });
+
+            it("should insert inline tag at IP and not change indenting", function () {
+                testEditor.setCursorPos({ line: 3, ch: 7 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_B), testDocument, testEditor);
+                expect(testDocument.getLine(3)).toEqual("    <p><strong></strong>Hello</p>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 3, ch: 15 });
+            });
+
+            it("should convert inline tag at IP and not change indenting", function () {
+                testEditor.setCursorPos({ line: 5, ch: 23 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_I, true), testDocument, testEditor);
+                expect(testDocument.getLine(5)).toEqual("    <p>Lorem <em>ipsum</em> dolor</p>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 5, ch: 19 });
+            });
+
+            it("should wrap inline tag around selection and not change indenting", function () {
+                testEditor.setSelection({ line: 5, ch: 36 }, { line: 5, ch: 41 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_I), testDocument, testEditor);
+                expect(testDocument.getLine(5)).toEqual("    <p>Lorem <strong>ipsum</strong> <em>dolor</em></p>");
+                expect(testEditor.getSelection()).toEqual({ start: { line: 5, ch: 40 }, end:  { line: 5, ch: 45 }, reversed: false });
             });
         });
     });
