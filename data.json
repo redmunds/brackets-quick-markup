@@ -43,6 +43,14 @@
         "strong": {
             "type": "inline",
             "shortcut": "b"
+        },
+        "<span style='font-size:0.8em;'>|</span>":{
+            "type": "custom",
+            "shortcut": "r"
+        },
+        "<br>":{
+            "type": "custom",
+            "shortcut": "t"
         }
     }
 }

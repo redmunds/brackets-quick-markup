@@ -343,6 +343,29 @@ define(function (require, exports, module) {
         };
     }
 
+    // 2015.02.21 sygnas
+    function wrapTagAroundCustomTag(newTagPair, sel, isBlock) {
+        var selText = doc.getRange(sel.start, sel.end),
+            openTag = newTagPair[0],
+            closeTag = newTagPair.length === 2 ? newTagPair[1] : "",
+            insertString = openTag + selText + closeTag,
+            replSelEnd = $.extend({}, sel.end);
+
+        // reset selection
+        var selNewStart = $.extend({}, sel.start),
+            selNewEnd   = $.extend({}, sel.end);
+
+        selNewStart.ch += openTag.length;
+        if (sel.start.line === sel.end.line) {
+            selNewEnd.ch += openTag.length;
+        }
+ 
+        return {
+            edit: {text: insertString, start: sel.start, end: replSelEnd},
+            selection: {start: selNewStart, end: selNewEnd, primary: sel.primary, isBeforeEdit: false}
+        };
+    }
+    
     function getAttributeString(tagName, sel) {
         var selAttrStart = $.extend({}, sel.start),
             ctxAttr = TokenUtils.getInitialContext(editor._codeMirror, selAttrStart),
@@ -604,6 +627,13 @@ define(function (require, exports, module) {
         return queueEdits(edits, wrapTagAroundSelection(newTagName, sel, false));
     }
 
+    // 2015.02.21 sygnas
+    function handleCustomTag(newTagName, isInsert, sel, ctx) {
+        var edits = [];
+        var newTagPair = newTagName.split("|");
+        return queueEdits(edits, wrapTagAroundCustomTag(newTagPair, sel, false));
+    }
+
     function getEdits(sel, keyCode, isInsert) {
         var ctx = TokenUtils.getInitialContext(editor._codeMirror, sel.start);
 
@@ -643,6 +673,9 @@ define(function (require, exports, module) {
                 return handleBlockTag(newTagName, isInsert, sel, ctx);
             } else if (tag.type === "inline") {
                 return handleInlineTag(newTagName, isInsert, sel, ctx);
+            } else if (tag.type === "custom") {
+                // 2015.02.21 sygnas
+                return handleCustomTag(newTagName, isInsert, sel, ctx);
             }
         }
 
