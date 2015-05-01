@@ -613,6 +613,77 @@ define(function (require, exports, module) {
             });
         });
 
+        describe("Empty tags", function () {
+            var testContent =
+                "<html>\n" +
+                "    <body>\n" +
+                "        <p></p>\n" +
+                "        <p>Lorem ipsum dolor sit amet</p>\n" +
+                "        <p>consectetur<br/> adipiscing</p>\n" +
+                "    </body>\n" +
+                "<html>\n";
+
+            beforeEach(function () {
+                setupTest(testContent);
+            });
+
+            afterEach(function () {
+                tearDownTest();
+            });
+
+            it("should insert empty tag at IP with trailing slash", function () {
+                testEditor.setCursorPos({ line: 2, ch: 11 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_9), testDocument, testEditor);
+                expect(testDocument.getLine(2)).toEqual("        <p><br/></p>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 2, ch: 16 });
+            });
+
+            it("should insert empty tag at IP without trailing slash", function () {
+                var brTag = QuickMarkup._data.markupTags.br,
+                    trailingSlash = brTag.insertTrailingSlash;
+                brTag.insertTrailingSlash = false;
+
+                testEditor.setCursorPos({ line: 2, ch: 11 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_9), testDocument, testEditor);
+                expect(testDocument.getLine(2)).toEqual("        <p><br></p>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 2, ch: 15 });
+
+                brTag.insertTrailingSlash = trailingSlash;
+            });
+
+            it("should not convert empty tag at IP", function () {
+                testEditor.setCursorPos({ line: 4, ch: 27 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_I, true), testDocument, testEditor);
+                expect(testDocument.getLine(4)).toEqual("        <p>consectetur<br/><em></em> adipiscing</p>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 4, ch: 31 });
+            });
+
+            it("should not insert empty tag when range selected", function () {
+                testEditor.setSelection({ line: 3, ch: 11 }, { line: 3, ch: 37 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_9), testDocument, testEditor);
+                expect(testDocument.getLine(3)).toEqual("        <p>Lorem ipsum dolor sit amet</p>");
+                expect(testEditor.getSelection()).toEqual({ start: { line: 3, ch: 11 }, end:  { line: 3, ch: 37 }, reversed: false });
+            });
+
+            it("should insert multiple empty tags", function () {
+                testEditor.setSelections(
+                    [
+                        { start: { line: 3, ch: 22 }, end: { line: 3, ch: 22 } },
+                        { start: { line: 3, ch: 32 }, end: { line: 3, ch: 32  }, primary: true }
+                    ]
+                );
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_9), testDocument, testEditor);
+                expect(testDocument.getLine(3)).toEqual("        <p>Lorem ipsum<br/> dolor sit<br/> amet</p>");
+
+                expect(testEditor.getSelections()).toEqual(
+                    [
+                        { start: { line: 3, ch: 27 }, end:  { line: 3, ch: 27 }, reversed: false, primary: false },
+                        { start: { line: 3, ch: 42 }, end:  { line: 3, ch: 42 }, reversed: false, primary: true }
+                    ]
+                );
+            });
+        });
+
         describe("Source formatting", function () {
             var testContent =
                 "<html>\n" +
