@@ -156,7 +156,7 @@ define(function (require, exports, module) {
 
     function getTagObjectFromKeyCode(keyCode) {
         var char = String.fromCharCode(keyCode);
-        return data.markupTags[char.toLowerCase()] || data.markupTags[char.toUpperCase()];
+        return data.shortcuts[char.toLowerCase()] || data.shortcuts[char.toUpperCase()];
     }
 
     // There is not a 1:1 correspondence between shortcuts and tag names, but this lookup
@@ -166,10 +166,10 @@ define(function (require, exports, module) {
         var shortcut,
             tagNameLower = tagName.toLowerCase();
 
-        for (shortcut in data.markupTags) {
-            if (data.markupTags.hasOwnProperty(shortcut)) {
-                if (data.markupTags[shortcut].name.toLowerCase() === tagNameLower) {
-                    return data.markupTags[shortcut];
+        for (shortcut in data.shortcuts) {
+            if (data.shortcuts.hasOwnProperty(shortcut)) {
+                if (data.shortcuts[shortcut].tagName.toLowerCase() === tagNameLower) {
+                    return data.shortcuts[shortcut];
                 }
             }
         }
@@ -240,7 +240,7 @@ define(function (require, exports, module) {
             ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeStart);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctx)) {
-            if (ctx.token.type === "tag" && ctx.token.string === tag.name) {
+            if (ctx.token.type === "tag" && ctx.token.string === tag.tagName) {
                 // move to prev token to get "<[tag]"
                 TokenUtils.movePrevToken(ctx);
                 tagRangeStart.ch = ctx.token.start;
@@ -258,7 +258,7 @@ define(function (require, exports, module) {
                     closeBracketFound = true;
                 }
             } else if (closeBracketFound) {
-                if (ctx.token.type === "tag" && ctx.token.string === tag.name) {
+                if (ctx.token.type === "tag" && ctx.token.string === tag.tagName) {
                     // move 1 more token to get ">"
                     TokenUtils.moveNextToken(ctx);
                     tagRangeEnd.ch = ctx.token.end;
@@ -273,8 +273,8 @@ define(function (require, exports, module) {
     }
 
     function changeTagName(oldTag, newTag, sel) {
-        var oldTagName = oldTag.name,
-            newTagName = (newTag && newTag.name) || "",
+        var oldTagName = oldTag.tagName,
+            newTagName = (newTag && newTag.tagName) || "",
             selTag = getTagRangeFromIP(oldTag, sel),
             oldTagStr = "",
             newTagStr = "",
@@ -339,10 +339,10 @@ define(function (require, exports, module) {
         }
 
         if (isEmptyTag(tag)) {
-            openTag = insertString = "<" + tag.name + (insertTrailingSlash(tag) ? "/>" : ">");
+            openTag = insertString = "<" + tag.tagName + (insertTrailingSlash(tag) ? "/>" : ">");
         } else {
-            openTag = "<" + tag.name + ">";
-            closeTag = "</" + tag.name + ">";
+            openTag = "<" + tag.tagName + ">";
+            closeTag = "</" + tag.tagName + ">";
             insertString = openTag + selText + closeTag;
         }
 
@@ -610,7 +610,7 @@ define(function (require, exports, module) {
             oldTag,
             edits = [];
 
-        if (newTag.name === oldTagName) {
+        if (newTag.tagName === oldTagName) {
             // same as handling event, but we don't need to do anything
             return noOpEdit(sel);
         }
@@ -632,7 +632,7 @@ define(function (require, exports, module) {
             edits = [];
 
         // if context is same tag, remove it
-        if (oldTag && newTag.name === oldTag.name) {
+        if (oldTag && newTag.tagName === oldTag.tagName) {
             return queueEdits(edits, changeTagName(oldTag, null, sel));
         }
 
@@ -795,8 +795,8 @@ define(function (require, exports, module) {
         origKeymap = $.extend(true, {}, bracketsKeymap);
 
         // Generate list of conflicting shortcuts
-        for (sc in data.markupTags) {
-            if (data.markupTags.hasOwnProperty(sc)) {
+        for (sc in data.shortcuts) {
+            if (data.shortcuts.hasOwnProperty(sc)) {
                 // Check Cmd/Ctrl+key
                 var shortcut = modifier + sc.toUpperCase(),
                     keybinding = origKeymap[shortcut];
@@ -945,8 +945,8 @@ define(function (require, exports, module) {
         }
 
         // Add row for every 3 tags
-        _.forEach(data.markupTags, function (tag, id) {
-            cellData.cells.push({key: id.toUpperCase(), tag: "<" + tag.name + ">"});
+        _.forEach(data.shortcuts, function (tag, id) {
+            cellData.cells.push({key: id.toUpperCase(), tag: "<" + tag.tagName + ">"});
             if (cellData.cells.length === 3) {
                 appendRow();
                 cellData.cells = [];

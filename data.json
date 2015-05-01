@@ -1,51 +1,51 @@
 {
-    "markupTags": {
+    "shortcuts": {
         "d": {
-            "name": "div",
+            "tagName": "div",
             "type": "block"
         },
         "i": {
-            "name": "em",
+            "tagName": "em",
             "type": "inline"
         },
         "1": {
-            "name": "h1",
+            "tagName": "h1",
             "type": "heading"
         },
         "2": {
-            "name": "h2",
+            "tagName": "h2",
             "type": "heading"
         },
         "3": {
-            "name": "h3",
+            "tagName": "h3",
             "type": "heading"
         },
         "4": {
-            "name": "h4",
+            "tagName": "h4",
             "type": "heading"
         },
         "5": {
-            "name": "h5",
+            "tagName": "h5",
             "type": "heading"
         },
         "6": {
-            "name": "h6",
+            "tagName": "h6",
             "type": "heading"
         },
         "l": {
-            "name": "li",
+            "tagName": "li",
             "type": "block"
         },
         "p": {
-            "name": "p",
+            "tagName": "p",
             "type": "block"
         },
         "b": {
-            "name": "strong",
+            "tagName": "strong",
             "type": "inline"
         },
         "9": {
-            "name": "br",
+            "tagName": "br",
             "type": "inline",
             "isEmpty": true,
             "insertTrailingSlash": true
