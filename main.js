@@ -57,6 +57,7 @@ define(function (require, exports, module) {
         doc,
         docMode,
         editor,
+        shortcutMap,
         $quickMarkupPanel;
 
     // Maintain a list of Ctrl/Cmd key bindings so we can determine conflicts
@@ -94,37 +95,32 @@ define(function (require, exports, module) {
         return (docMode && (docMode.match(/html/) || docMode.match(/php/)));
     }
 
-    function isHeadingTag(tagName) {
-        var tag = data.markupTags[tagName];
+    function isHeadingTag(tag) {
         return (tag && tag.type === "heading") ? true : false;
     }
 
-    function isInlineTag(tagName) {
-        var tag = data.markupTags[tagName];
+    function isInlineTag(tag) {
         return (tag && tag.type === "inline") ? true : false;
     }
 
-    function isTextFormattingTag(tagName) {
-        var tag = data.markupTags[tagName];
+    function isTextFormattingTag(tag) {
         return (tag && tag.type === "block") ? true : false;
     }
 
-    function isBlockLevelTag(tagName) {
-        return (isHeadingTag(tagName) || isTextFormattingTag(tagName));
+    function isBlockLevelTag(tag) {
+        return (isHeadingTag(tag) || isTextFormattingTag(tag));
     }
 
-    function isEmptyTag(tagName) {
-        var tag = data.markupTags[tagName];
+    function isEmptyTag(tag) {
         return (tag && tag.isEmpty) ? true : false;
     }
 
-    function insertTrailingSlash(tagName) {
-        var tag = data.markupTags[tagName];
+    function insertTrailingSlash(tag) {
         return (tag && tag.insertTrailingSlash) ? true : false;
     }
 
-    function isEmptyMatches(tagName1, tagName2) {
-        return (isEmptyTag(tagName1) === isEmptyTag(tagName2));
+    function isEmptyMatches(tag1, tag2) {
+        return (isEmptyTag(tag1) === isEmptyTag(tag2));
     }
 
     function getLineEnding() {
@@ -158,19 +154,27 @@ define(function (require, exports, module) {
         };
     }
 
-    function getTagNameFromKeyCode(keyCode) {
-        var char = String.fromCharCode(keyCode),
-            tagName;
+    function getTagObjectFromKeyCode(keyCode) {
+        var char = String.fromCharCode(keyCode);
+        return data.markupTags[char.toLowerCase()] || data.markupTags[char.toUpperCase()];
+    }
 
-        for (tagName in data.markupTags) {
-            if (data.markupTags.hasOwnProperty(tagName)) {
-                if (data.markupTags[tagName].shortcut.toUpperCase() === char) {
-                    return tagName;
+    // There is not a 1:1 correspondence between shortcuts and tag names, but this lookup
+    // is useful, for example, to determine whether a tag type is inline vs block-level,
+    // or empty vs non-empty (assuming user data is consistent).
+    function getTagObjectFromName(tagName) {
+        var shortcut,
+            tagNameLower = tagName.toLowerCase();
+
+        for (shortcut in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(shortcut)) {
+                if (data.markupTags[shortcut].name.toLowerCase() === tagNameLower) {
+                    return data.markupTags[shortcut];
                 }
             }
         }
 
-        return "";
+        return null;
     }
 
     // Helper function to find htmlState object. This function assumes document has already
@@ -229,14 +233,14 @@ define(function (require, exports, module) {
         return false;
     }
 
-    function getTagRangeFromIP(tagName, sel) {
+    function getTagRangeFromIP(tag, sel) {
         // Go backwards to the start of the tag
         var tagRangeStart = $.extend({}, sel.start),
             tagRangeEnd   = $.extend({}, sel.end),
             ctx = TokenUtils.getInitialContext(editor._codeMirror, tagRangeStart);
 
         while (TokenUtils.moveSkippingWhitespace(TokenUtils.movePrevToken, ctx)) {
-            if (ctx.token.type === "tag" && ctx.token.string === tagName) {
+            if (ctx.token.type === "tag" && ctx.token.string === tag.name) {
                 // move to prev token to get "<[tag]"
                 TokenUtils.movePrevToken(ctx);
                 tagRangeStart.ch = ctx.token.start;
@@ -254,7 +258,7 @@ define(function (require, exports, module) {
                     closeBracketFound = true;
                 }
             } else if (closeBracketFound) {
-                if (ctx.token.type === "tag" && ctx.token.string === tagName) {
+                if (ctx.token.type === "tag" && ctx.token.string === tag.name) {
                     // move 1 more token to get ">"
                     TokenUtils.moveNextToken(ctx);
                     tagRangeEnd.ch = ctx.token.end;
@@ -268,8 +272,10 @@ define(function (require, exports, module) {
         return { start: tagRangeStart, end: tagRangeEnd };
     }
 
-    function changeTagName(oldTagName, newTagName, sel) {
-        var selTag = getTagRangeFromIP(oldTagName, sel),
+    function changeTagName(oldTag, newTag, sel) {
+        var oldTagName = oldTag.name,
+            newTagName = (newTag && newTag.name) || "",
+            selTag = getTagRangeFromIP(oldTag, sel),
             oldTagStr = "",
             newTagStr = "",
             oldStartTagIndex;
@@ -286,7 +292,6 @@ define(function (require, exports, module) {
         }
         oldStartTagIndex = oldTagStr.indexOf(">");
 
-        // TODO: only works with no attributes
         if (newTagName !== "") {
             newTagStr += "<" + newTagName;
             newTagStr += oldTagStr.substr(oldTagName.length + 1,
@@ -323,21 +328,21 @@ define(function (require, exports, module) {
         };
     }
 
-    function insertTag(tagName, sel) {
-        var openTag, closeTag, insertString,
+    function insertTag(tag, sel) {
+        var openTag, attrs, closeTag, insertString,
             selText = doc.getRange(sel.start, sel.end),
             replSelEnd = $.extend({}, sel.end);
 
-        if (isEmptyTag(tagName) && !isIP(sel)) {
+        if (isEmptyTag(tag) && !isIP(sel)) {
             // can't wrap empty tag around a range
             return noOpEdit(sel);
         }
 
-        if (isEmptyTag(tagName)) {
-            openTag = insertString = "<" + tagName + (insertTrailingSlash(tagName) ? "/>" : ">");
+        if (isEmptyTag(tag)) {
+            openTag = insertString = "<" + tag.name + (insertTrailingSlash(tag) ? "/>" : ">");
         } else {
-            openTag = "<" + tagName + ">";
-            closeTag = "</" + tagName + ">";
+            openTag = "<" + tag.name + ">";
+            closeTag = "</" + tag.name + ">";
             insertString = openTag + selText + closeTag;
         }
 
@@ -441,15 +446,16 @@ define(function (require, exports, module) {
         }
 
         var tagName = htmlState(ctx).context.tagName.toLowerCase(),
+            tag = getTagObjectFromName(tagName),
             attrStr = "",
             edits = [];
 
         // currently only for block-level tags
-        if (!isBlockLevelTag(tagName)) {
+        if (!isBlockLevelTag(tag)) {
             return null;
         }
 
-        if (isHeadingTag(tagName) && isEndOfContent(sel.start, ctx)) {
+        if (isHeadingTag(tag) && isEndOfContent(sel.start, ctx)) {
             // if IP is at end of heading tag when Ctrl-Enter is pressed, then
             // user is most likely typing, and wants a paragraph after heading.
             return queueEdits(edits, addTagOnNextLine("p", "", sel));
@@ -467,8 +473,10 @@ define(function (require, exports, module) {
         }
 
         // determine if tag is joinable
-        var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isBlockLevelTag(tagName)) {
+        var tagName = htmlState(ctx).context.tagName.toLowerCase(),
+            tag = getTagObjectFromName(tagName);
+
+        if (!isBlockLevelTag(tag)) {
             return null;
         }
 
@@ -536,8 +544,10 @@ define(function (require, exports, module) {
         }
 
         // determine if tag is joinable
-        var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isBlockLevelTag(tagName)) {
+        var tagName = htmlState(ctx).context.tagName.toLowerCase(),
+            tag = getTagObjectFromName(tagName);
+
+        if (!isBlockLevelTag(tag)) {
             return null;
         }
 
@@ -595,42 +605,45 @@ define(function (require, exports, module) {
         };
     }
 
-    function handleBlockTag(newTagName, isInsert, sel, ctx) {
+    function handleBlockTag(newTag, isInsert, sel, ctx) {
         var oldTagName = htmlState(ctx).context.tagName.toLowerCase(),
+            oldTag,
             edits = [];
 
-        if (newTagName === oldTagName) {
+        if (newTag.name === oldTagName) {
             // same as handling event, but we don't need to do anything
             return noOpEdit(sel);
         }
 
         // context is a different tag
-        if (!isInsert && isBlockLevelTag(oldTagName) && isEmptyMatches(newTagName, oldTagName)) {
+        oldTag = getTagObjectFromName(oldTagName);
+        if (!isInsert && isBlockLevelTag(oldTag) && isEmptyMatches(newTag, oldTag)) {
             // convert existing block/header tag if "isEmpty" matches
-            return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
+            return queueEdits(edits, changeTagName(oldTag, newTag, sel));
         }
 
         // wrap new tag around selection
-        return queueEdits(edits, insertTag(newTagName, sel));
+        return queueEdits(edits, insertTag(newTag, sel));
     }
 
-    function handleInlineTag(newTagName, isInsert, sel, ctx) {
+    function handleInlineTag(newTag, isInsert, sel, ctx) {
         var oldTagName = htmlState(ctx).context.tagName.toLowerCase(),
+            oldTag = getTagObjectFromName(oldTagName),
             edits = [];
 
         // if context is same tag, remove it
-        if (newTagName === oldTagName) {
-            return queueEdits(edits, changeTagName(oldTagName, "", sel));
+        if (oldTag && newTag.name === oldTag.name) {
+            return queueEdits(edits, changeTagName(oldTag, null, sel));
         }
 
         // context is a different tag
-        if (!isInsert && isInlineTag(oldTagName) && isEmptyMatches(newTagName, oldTagName)) {
+        if (!isInsert && isInlineTag(oldTag) && isEmptyMatches(newTag, oldTag)) {
             // convert existing inline tag
-            return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
+            return queueEdits(edits, changeTagName(oldTag, newTag, sel));
         }
 
         // wrap new tag around selection
-        return queueEdits(edits, insertTag(newTagName, sel));
+        return queueEdits(edits, insertTag(newTag, sel));
     }
 
     function getEdits(sel, keyCode, isInsert) {
@@ -663,15 +676,14 @@ define(function (require, exports, module) {
         default:
             // determine tag for IP
             // default is insert new tag; if shift key then convert existing tag
-            var newTagName = getTagNameFromKeyCode(keyCode),
-                tag        = data.markupTags[newTagName];
+            var tag = getTagObjectFromKeyCode(keyCode);
 
             if (!tag) {
                 return null;
             } else if (tag.type === "block" || tag.type === "heading") {
-                return handleBlockTag(newTagName, isInsert, sel, ctx);
+                return handleBlockTag(tag, isInsert, sel, ctx);
             } else if (tag.type === "inline") {
-                return handleInlineTag(newTagName, isInsert, sel, ctx);
+                return handleInlineTag(tag, isInsert, sel, ctx);
             }
         }
 
@@ -689,8 +701,7 @@ define(function (require, exports, module) {
         default:
             // determine tag for IP
             // default is insert new tag; if shift key then convert existing tag
-            var newTagName = getTagNameFromKeyCode(keyCode),
-                tag        = data.markupTags[newTagName];
+            var tag = getTagObjectFromKeyCode(keyCode);
 
             if (!tag) {
                 return false;
@@ -775,7 +786,7 @@ define(function (require, exports, module) {
     function initQuickMarkupMode() {
         var bracketsKeymap = KeyBindingManager.getKeymap(),
             modifier = (brackets.platform === "mac" ? "Cmd-" : "Ctrl-"),
-            tagName;
+            sc;
 
         KeyBindingManager.addGlobalKeydownHook(_keydownHook);
 
@@ -784,10 +795,10 @@ define(function (require, exports, module) {
         origKeymap = $.extend(true, {}, bracketsKeymap);
 
         // Generate list of conflicting shortcuts
-        for (tagName in data.markupTags) {
-            if (data.markupTags.hasOwnProperty(tagName)) {
+        for (sc in data.markupTags) {
+            if (data.markupTags.hasOwnProperty(sc)) {
                 // Check Cmd/Ctrl+key
-                var shortcut = modifier + data.markupTags[tagName].shortcut.toUpperCase(),
+                var shortcut = modifier + sc.toUpperCase(),
                     keybinding = origKeymap[shortcut];
                 if (keybinding) {
                     conflictingBindingsArray.push({
@@ -798,7 +809,7 @@ define(function (require, exports, module) {
                 }
 
                 // Check Cmd/Ctrl+Shift+key
-                shortcut = modifier + "Shift-" + data.markupTags[tagName].shortcut.toUpperCase();
+                shortcut = modifier + "Shift-" + sc.toUpperCase();
                 keybinding = origKeymap[shortcut];
                 if (keybinding) {
                     conflictingBindingsArray.push({
@@ -935,7 +946,7 @@ define(function (require, exports, module) {
 
         // Add row for every 3 tags
         _.forEach(data.markupTags, function (tag, id) {
-            cellData.cells.push({key: tag.shortcut.toUpperCase(), tag: "<" + id + ">"});
+            cellData.cells.push({key: id.toUpperCase(), tag: "<" + tag.name + ">"});
             if (cellData.cells.length === 3) {
                 appendRow();
                 cellData.cells = [];

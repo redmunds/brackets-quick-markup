@@ -1,54 +1,54 @@
 {
     "markupTags": {
-        "div": {
-            "type": "block",
-            "shortcut": "d"
+        "d": {
+            "name": "div",
+            "type": "block"
         },
-        "em": {
-            "type": "inline",
-            "shortcut": "i"
+        "i": {
+            "name": "em",
+            "type": "inline"
         },
-        "h1": {
-            "type": "heading",
-            "shortcut": "1"
+        "1": {
+            "name": "h1",
+            "type": "heading"
         },
-        "h2": {
-            "type": "heading",
-            "shortcut": "2"
+        "2": {
+            "name": "h2",
+            "type": "heading"
         },
-        "h3": {
-            "type": "heading",
-            "shortcut": "3"
+        "3": {
+            "name": "h3",
+            "type": "heading"
         },
-        "h4": {
-            "type": "heading",
-            "shortcut": "4"
+        "4": {
+            "name": "h4",
+            "type": "heading"
         },
-        "h5": {
-            "type": "heading",
-            "shortcut": "5"
+        "5": {
+            "name": "h5",
+            "type": "heading"
         },
-        "h6": {
-            "type": "heading",
-            "shortcut": "6"
+        "6": {
+            "name": "h6",
+            "type": "heading"
         },
-        "li": {
-            "type": "block",
-            "shortcut": "l"
+        "l": {
+            "name": "li",
+            "type": "block"
         },
         "p": {
-            "type": "block",
-            "shortcut": "p"
+            "name": "p",
+            "type": "block"
         },
-        "strong": {
-            "type": "inline",
-            "shortcut": "b"
+        "b": {
+            "name": "strong",
+            "type": "inline"
         },
-        "br": {
+        "9": {
+            "name": "br",
             "type": "inline",
             "isEmpty": true,
-            "insertTrailingSlash": true,
-            "shortcut": "9"
+            "insertTrailingSlash": true
         }
     }
 }

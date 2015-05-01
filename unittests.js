@@ -639,7 +639,7 @@ define(function (require, exports, module) {
             });
 
             it("should insert empty tag at IP without trailing slash", function () {
-                var brTag = QuickMarkup._data.markupTags.br,
+                var brTag = QuickMarkup._data.markupTags["9"],
                     trailingSlash = brTag.insertTrailingSlash;
                 brTag.insertTrailingSlash = false;
 
