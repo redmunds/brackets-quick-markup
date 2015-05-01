@@ -16,6 +16,8 @@ is required because this extension uses a lot of keyboard shortcuts which confli
 some Brackets standard shortcuts. All other Brackets commands and editing work as expected.
 Conflicting shortcuts are removed when this extension is enable and restored when it's disabled.
 
+Note: Do *not* install extensions while in Quick Markup mode because shortcut conflicts will not be resolved.
+
 Quick Markup mode allows fast HTML markup generation as you type similar to what how a
 rich text editor works. It was created with text formatting in mind, but can be configured
 for any kind of markup. It currently only works in HTML and PHP documents.

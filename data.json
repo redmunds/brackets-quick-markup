@@ -43,6 +43,12 @@
         "strong": {
             "type": "inline",
             "shortcut": "b"
+        },
+        "br": {
+            "type": "inline",
+            "isEmpty": true,
+            "insertTrailingSlash": true,
+            "shortcut": "9"
         }
     }
 }

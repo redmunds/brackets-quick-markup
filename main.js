@@ -96,17 +96,35 @@ define(function (require, exports, module) {
 
     function isHeadingTag(tagName) {
         var tag = data.markupTags[tagName];
-        return (tag && tag.type === "heading");
+        return (tag && tag.type === "heading") ? true : false;
     }
 
     function isInlineTag(tagName) {
         var tag = data.markupTags[tagName];
-        return (tag && tag.type === "inline");
+        return (tag && tag.type === "inline") ? true : false;
     }
 
     function isTextFormattingTag(tagName) {
         var tag = data.markupTags[tagName];
-        return (tag && tag.type === "block");
+        return (tag && tag.type === "block") ? true : false;
+    }
+
+    function isBlockLevelTag(tagName) {
+        return (isHeadingTag(tagName) || isTextFormattingTag(tagName));
+    }
+
+    function isEmptyTag(tagName) {
+        var tag = data.markupTags[tagName];
+        return (tag && tag.isEmpty) ? true : false;
+    }
+
+    function insertTrailingSlash(tagName) {
+        var tag = data.markupTags[tagName];
+        return (tag && tag.insertTrailingSlash) ? true : false;
+    }
+
+    function isEmptyMatches(tagName1, tagName2) {
+        return (isEmptyTag(tagName1) === isEmptyTag(tagName2));
     }
 
     function getLineEnding() {
@@ -136,7 +154,7 @@ define(function (require, exports, module) {
     function noOpEdit(sel) {
         return {
             edit: {text: "", start: sel.start, end: sel.start},
-            selection: {start: sel.start, end: sel.start, primary: sel.primary, isBeforeEdit: true}
+            selection: {start: sel.start, end: sel.end, primary: sel.primary, isBeforeEdit: true}
         };
     }
 
@@ -305,12 +323,23 @@ define(function (require, exports, module) {
         };
     }
 
-    function wrapTagAroundSelection(tagName, sel, isBlock) {
-        var selText = doc.getRange(sel.start, sel.end),
-            openTag = "<" + tagName + ">",
-            closeTag = "</" + tagName + ">",
-            insertString = openTag + selText + closeTag,
+    function insertTag(tagName, sel) {
+        var openTag, closeTag, insertString,
+            selText = doc.getRange(sel.start, sel.end),
             replSelEnd = $.extend({}, sel.end);
+
+        if (isEmptyTag(tagName) && !isIP(sel)) {
+            // can't wrap empty tag around a range
+            return noOpEdit(sel);
+        }
+
+        if (isEmptyTag(tagName)) {
+            openTag = insertString = "<" + tagName + (insertTrailingSlash(tagName) ? "/>" : ">");
+        } else {
+            openTag = "<" + tagName + ">";
+            closeTag = "</" + tagName + ">";
+            insertString = openTag + selText + closeTag;
+        }
 
         if (isIP(sel)) {
             var trailingText, endPos;
@@ -416,7 +445,7 @@ define(function (require, exports, module) {
             edits = [];
 
         // currently only for block-level tags
-        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
+        if (!isBlockLevelTag(tagName)) {
             return null;
         }
 
@@ -439,7 +468,7 @@ define(function (require, exports, module) {
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
+        if (!isBlockLevelTag(tagName)) {
             return null;
         }
 
@@ -508,7 +537,7 @@ define(function (require, exports, module) {
 
         // determine if tag is joinable
         var tagName = htmlState(ctx).context.tagName.toLowerCase();
-        if (!isTextFormattingTag(tagName) && !isHeadingTag(tagName)) {
+        if (!isBlockLevelTag(tagName)) {
             return null;
         }
 
@@ -576,13 +605,13 @@ define(function (require, exports, module) {
         }
 
         // context is a different tag
-        if (!isInsert && (isTextFormattingTag(oldTagName) || isHeadingTag(oldTagName))) {
-            // convert existing block/header tag
+        if (!isInsert && isBlockLevelTag(oldTagName) && isEmptyMatches(newTagName, oldTagName)) {
+            // convert existing block/header tag if "isEmpty" matches
             return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
         }
 
         // wrap new tag around selection
-        return queueEdits(edits, wrapTagAroundSelection(newTagName, sel, true));
+        return queueEdits(edits, insertTag(newTagName, sel));
     }
 
     function handleInlineTag(newTagName, isInsert, sel, ctx) {
@@ -595,13 +624,13 @@ define(function (require, exports, module) {
         }
 
         // context is a different tag
-        if (!isInsert && isInlineTag(oldTagName)) {
+        if (!isInsert && isInlineTag(oldTagName) && isEmptyMatches(newTagName, oldTagName)) {
             // convert existing inline tag
             return queueEdits(edits, changeTagName(oldTagName, newTagName, sel));
         }
 
         // wrap new tag around selection
-        return queueEdits(edits, wrapTagAroundSelection(newTagName, sel, false));
+        return queueEdits(edits, insertTag(newTagName, sel));
     }
 
     function getEdits(sel, keyCode, isInsert) {
@@ -956,6 +985,7 @@ define(function (require, exports, module) {
     init();
 
     // Unit Test API
+    exports._data                   = data;
     exports._disableQuickMarkupMode = _disableQuickMarkupMode;
     exports._enableQuickMarkupMode  = _enableQuickMarkupMode;
     exports._handleKey              = handleKey;
