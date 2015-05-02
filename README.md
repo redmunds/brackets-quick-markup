@@ -110,7 +110,7 @@ so they are fully configurable.
 
 Sample tag shortcuts:
 
-```json
+```
 "p": {                        // shortcut letter, must be unique
   "tagName": "p",             // tag name (required)
   "type": "block",            // "block", "heading", or "inline" (required)
