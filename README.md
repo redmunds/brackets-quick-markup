@@ -74,7 +74,11 @@ Default shortcuts used to generate markup:
   </tr>
   <tr>
     <td><strong>Ctrl-D</strong></td>
-    <td>&lt;del&gt;</td>
+    <td>&lt;div&gt;</td>
+  </tr>
+  <tr>
+    <td><strong>Ctrl-9</strong></td>
+    <td>&lt;br/&gt;</td>
   </tr>
 </table>
 
@@ -103,6 +107,22 @@ Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Shift-M to see a list of all sh
 
 The tags and shortcuts are defined in [data.json](https://github.com/redmunds/brackets-quick-markup/blob/master/data.json),
 so they are fully configurable.
+
+Sample tag shortcuts:
+
+```json
+"p": {                        // shortcut letter, must be unique
+  "tagName": "p",             // tag name (required)
+  "type": "block",            // "block", "heading", or "inline" (required)
+  "attributes": "class='x'"   // attribute string (optional)
+}
+"9": {
+  "tagName": "br",
+  "type": "inline",
+  "isEmpty": true,            // <br> vs <p></p>, default is false
+  "insertTrailingSlash": true // <br> vs <br/>, default is false
+}
+```
 
 Once this extension is installed in Brackets, use **Help > Show Extensions Folder** to navigate
 to the extensions folder. Hint: drag the folder onto Brackets window to quickly switch the current

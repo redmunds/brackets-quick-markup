@@ -444,6 +444,20 @@ define(function (require, exports, module) {
                 expect(testEditor.getCursorPos()).toEqual({ line: 6, ch: 13 });
             });
 
+            it("should insert block level tag at IP with attributes", function () {
+                // 'attributes' property is currently not used in data.json, so temporarily set it
+                var divTag = QuickMarkup._data.shortcuts.d,
+                    attrs = divTag.attributes;
+                divTag.attributes = "class='test'";
+
+                testEditor.setCursorPos({ line: 6, ch: 8 });
+                QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_D), testDocument, testEditor);
+                expect(testDocument.getLine(6)).toEqual("        <div class='test'></div>");
+                expect(testEditor.getCursorPos()).toEqual({ line: 6, ch: 26 });
+
+                divTag.attributes = attrs;
+            });
+
             it("should insert heading tag at IP", function () {
                 testEditor.setCursorPos({ line: 6, ch: 8 });
                 QuickMarkup._handleKey(makeCtrlKeyEvent(KeyEvent.DOM_VK_3), testDocument, testEditor);
@@ -639,7 +653,8 @@ define(function (require, exports, module) {
             });
 
             it("should insert empty tag at IP without trailing slash", function () {
-                var brTag = QuickMarkup._data.markupTags["9"],
+                // 'insertTrailingSlash':false is currently not used in data.json, so temporarily set it
+                var brTag = QuickMarkup._data.shortcuts["9"],
                     trailingSlash = brTag.insertTrailingSlash;
                 brTag.insertTrailingSlash = false;
 

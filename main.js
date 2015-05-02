@@ -338,10 +338,16 @@ define(function (require, exports, module) {
             return noOpEdit(sel);
         }
 
+        attrs = tag.attributes || "";
+        // if attribute string starts with non-whitespace then add a space
+        if (attrs.length && /^\S/.test(attrs)) {
+            attrs = " " + attrs;
+        }
+
         if (isEmptyTag(tag)) {
-            openTag = insertString = "<" + tag.tagName + (insertTrailingSlash(tag) ? "/>" : ">");
+            openTag = insertString = "<" + tag.tagName + attrs + (insertTrailingSlash(tag) ? "/>" : ">");
         } else {
-            openTag = "<" + tag.tagName + ">";
+            openTag = "<" + tag.tagName + attrs + ">";
             closeTag = "</" + tag.tagName + ">";
             insertString = openTag + selText + closeTag;
         }
