@@ -1,54 +1,54 @@
 {
-    "markupTags": {
-        "div": {
-            "type": "block",
-            "shortcut": "d"
+    "shortcuts": {
+        "d": {
+            "tagName": "div",
+            "type": "block"
         },
-        "em": {
-            "type": "inline",
-            "shortcut": "i"
+        "i": {
+            "tagName": "em",
+            "type": "inline"
         },
-        "h1": {
-            "type": "heading",
-            "shortcut": "1"
+        "1": {
+            "tagName": "h1",
+            "type": "heading"
         },
-        "h2": {
-            "type": "heading",
-            "shortcut": "2"
+        "2": {
+            "tagName": "h2",
+            "type": "heading"
         },
-        "h3": {
-            "type": "heading",
-            "shortcut": "3"
+        "3": {
+            "tagName": "h3",
+            "type": "heading"
         },
-        "h4": {
-            "type": "heading",
-            "shortcut": "4"
+        "4": {
+            "tagName": "h4",
+            "type": "heading"
         },
-        "h5": {
-            "type": "heading",
-            "shortcut": "5"
+        "5": {
+            "tagName": "h5",
+            "type": "heading"
         },
-        "h6": {
-            "type": "heading",
-            "shortcut": "6"
+        "6": {
+            "tagName": "h6",
+            "type": "heading"
         },
-        "li": {
-            "type": "block",
-            "shortcut": "l"
+        "l": {
+            "tagName": "li",
+            "type": "block"
         },
         "p": {
-            "type": "block",
-            "shortcut": "p"
+            "tagName": "p",
+            "type": "block"
         },
-        "strong": {
-            "type": "inline",
-            "shortcut": "b"
+        "b": {
+            "tagName": "strong",
+            "type": "inline"
         },
-        "br": {
+        "9": {
+            "tagName": "br",
             "type": "inline",
             "isEmpty": true,
-            "insertTrailingSlash": true,
-            "shortcut": "9"
+            "insertTrailingSlash": true
         }
     }
 }
