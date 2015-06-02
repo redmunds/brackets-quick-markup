@@ -9,7 +9,7 @@ This is an Extension for [Brackets](https://github.com/adobe/brackets).
 
 ## Features
 
-This extension is accessed in Brackets using menu **Edit &gt; Quick Markup Mode** or Ctrl-M.
+This extension is accessed in Brackets using menu **Edit &gt; Quick Markup Mode** or Ctrl-Shift-M.
 
 A minimal bottom panel is displayed to indicate you are in quick markup mode. A &quot;mode&quot;
 is required because this extension uses a lot of keyboard shortcuts which conflict with
@@ -101,7 +101,7 @@ Default shortcuts used to generate markup:
 
 **Note:** Ctrl refers to Ctrl key on Windows or Cmd key on Mac.
 
-Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Shift-M to see a list of all shortcuts used by this extension.
+Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Alt-M to see a list of all shortcuts used by this extension.
 
 ##Configuration
 

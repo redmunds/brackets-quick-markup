@@ -987,8 +987,8 @@ define(function (require, exports, module) {
         var edit_menu = Menus.getMenu(Menus.AppMenuBar.EDIT_MENU);
         if (edit_menu) {
             edit_menu.addMenuDivider();
-            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP,      "Ctrl-M");
-            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP_HELP, "Ctrl-Shift-M");
+            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP,      "Ctrl-Shift-M");
+            edit_menu.addMenuItem(TOGGLE_QUICK_MARKUP_HELP, "Ctrl-Alt-M");
         }
     
         MainViewManager.on("currentFileChange", handleCurrentFileChange);
