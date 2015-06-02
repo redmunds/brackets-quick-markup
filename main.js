@@ -983,7 +983,7 @@ define(function (require, exports, module) {
             cmdHelp.setChecked(helpQuickMarkup);
         }
 
-        // Add command to end of edit menu, if it exists
+        // Add command to end of edit menu, if it exists 
         var edit_menu = Menus.getMenu(Menus.AppMenuBar.EDIT_MENU);
         if (edit_menu) {
             edit_menu.addMenuDivider();
