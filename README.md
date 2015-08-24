@@ -130,4 +130,4 @@ Brackets project to that folder. Open the user/brackets-quick-markup folder to f
 
 ## License
 
-MIT-licensed -- see _main.js_ for details.
+MIT-licensed -- see _LICENSE.md_ for details.
