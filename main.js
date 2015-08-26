@@ -952,7 +952,8 @@ define(function (require, exports, module) {
 
         // Add row for every 3 tags
         _.forEach(data.shortcuts, function (tag, id) {
-            cellData.cells.push({key: id.toUpperCase(), tag: "<" + tag.tagName + ">"});
+            var tagDisplay = tag.tagDisplay || tag.tagName;
+            cellData.cells.push({key: id.toUpperCase(), tag: "<" + tagDisplay + ">"});
             if (cellData.cells.length === 3) {
                 appendRow();
                 cellData.cells = [];
