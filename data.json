@@ -46,6 +46,7 @@
         },
         "9": {
             "tagName": "br",
+            "tagDisplay": "br/",
             "type": "inline",
             "isEmpty": true,
             "insertTrailingSlash": true
