@@ -113,6 +113,7 @@ Sample tag shortcuts:
 ```
 "p": {                        // shortcut letter, must be unique
   "tagName": "p",             // tag name (required)
+  "tagDisplay": "p.x",        // tag display string (optional), otherwise tagName is used
   "type": "block",            // "block", "heading", or "inline" (required)
   "attributes": "class='x'"   // attribute string (optional)
 }
