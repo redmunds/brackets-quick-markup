@@ -633,7 +633,7 @@ define(function (require, exports, module) {
             edits = [];
 
         // if context is same tag, remove it
-        if (oldTag && newTag.tagName === oldTag.tagName) {
+        if (oldTag && newTag.tagName === oldTag.tagName && !oldTag.nestable) {
             return queueEdits(edits, changeTagName(oldTag, null, sel));
         }
 
