@@ -616,11 +616,6 @@ define(function (require, exports, module) {
             oldTag,
             edits = [];
 
-        if (newTag.tagName === oldTagName) {
-            // same as handling event, but we don't need to do anything
-            return noOpEdit(sel);
-        }
-
         // context is a different tag
         oldTag = getTagObjectFromName(oldTagName);
         if (!isInsert && isBlockLevelTag(oldTag) && isEmptyMatches(newTag, oldTag)) {
