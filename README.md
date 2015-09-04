@@ -108,7 +108,7 @@ Use **Edit &gt; Quick Markup Mode Help** or Ctrl-Alt-M to see a list of all shor
 The tags and shortcuts are defined in [data.json](https://github.com/redmunds/brackets-quick-markup/blob/master/data.json),
 so they are fully configurable.
 
-Sample tag shortcuts:
+Sample json configuration file:
 
 ```
 "p": {                        // shortcut letter, must be unique
@@ -116,7 +116,13 @@ Sample tag shortcuts:
   "tagDisplay": "p.x",        // tag display string (optional), otherwise tagName is used
   "type": "block",            // "block", "heading", or "inline" (required)
   "attributes": "class='x'"   // attribute string (optional)
-}
+},
+"8": {
+  "tagName": "span",
+  "type": "inline",
+  "nestable": true            // nestable (inline only), default is false
+                              // non-nestable tags are toggled on/off (e.g. <em>)
+},
 "9": {
   "tagName": "br",
   "type": "inline",
@@ -124,6 +130,8 @@ Sample tag shortcuts:
   "insertTrailingSlash": true // <br> vs <br/>, default is false
 }
 ```
+
+Note that comments are not allowed in json files. These are added for information only.
 
 Once this extension is installed in Brackets, use **Help > Show Extensions Folder** to navigate
 to the extensions folder. Hint: drag the folder onto Brackets window to quickly switch the current
