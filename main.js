@@ -616,11 +616,6 @@ define(function (require, exports, module) {
             oldTag,
             edits = [];
 
-        if (newTag.tagName === oldTagName) {
-            // same as handling event, but we don't need to do anything
-            return noOpEdit(sel);
-        }
-
         // context is a different tag
         oldTag = getTagObjectFromName(oldTagName);
         if (!isInsert && isBlockLevelTag(oldTag) && isEmptyMatches(newTag, oldTag)) {
@@ -638,7 +633,7 @@ define(function (require, exports, module) {
             edits = [];
 
         // if context is same tag, remove it
-        if (oldTag && newTag.tagName === oldTag.tagName) {
+        if (oldTag && newTag.tagName === oldTag.tagName && !oldTag.nestable) {
             return queueEdits(edits, changeTagName(oldTag, null, sel));
         }
 
